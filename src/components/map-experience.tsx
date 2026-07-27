@@ -184,6 +184,7 @@ export function MapExperience() {
   const reportModalPanelRef = useRef<HTMLDivElement>(null);
   const accountModalPanelRef = useRef<HTMLDivElement>(null);
   const informationModalPanelRef = useRef<HTMLDivElement>(null);
+  const loadingVideoRef = useRef<HTMLVideoElement>(null);
 
   const closeMobileSheet = (panel: HTMLElement | null, onComplete: () => void) => {
     if (!panel || !window.matchMedia("(max-width: 720px)").matches) {
@@ -391,6 +392,37 @@ export function MapExperience() {
     }, 4_500);
     return () => window.clearTimeout(maximumLoadingTime);
   }, []);
+
+  useEffect(() => {
+    if (!showLoadingScreen) return;
+    const video = loadingVideoRef.current;
+    if (!video) return;
+
+    // Safari exige que l’état muet soit défini avant toute tentative de lecture.
+    video.defaultMuted = true;
+    video.muted = true;
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+
+    const play = () => {
+      if (video.paused) void video.play().catch(() => undefined);
+    };
+    const resumeWhenVisible = () => {
+      if (document.visibilityState === "visible") play();
+    };
+
+    play();
+    video.addEventListener("canplay", play);
+    window.addEventListener("pageshow", play);
+    document.addEventListener("visibilitychange", resumeWhenVisible);
+    document.addEventListener("touchstart", play, { once: true, passive: true });
+    return () => {
+      video.removeEventListener("canplay", play);
+      window.removeEventListener("pageshow", play);
+      document.removeEventListener("visibilitychange", resumeWhenVisible);
+      document.removeEventListener("touchstart", play);
+    };
+  }, [showLoadingScreen]);
 
   useEffect(() => {
     if (!loadingScreenLeaving) return;
@@ -1002,6 +1034,7 @@ export function MapExperience() {
               className="size-[clamp(170px,34vw,280px)] object-contain"
               loop
               muted
+              ref={loadingVideoRef}
               playsInline
               poster="/logo.png"
               preload="auto"
