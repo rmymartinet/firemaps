@@ -396,8 +396,8 @@ export function MapExperience() {
   }, []);
 
   useEffect(() => {
-    const isSafari = navigator.vendor.includes("Apple")
-      && !/(CriOS|FxiOS|EdgiOS|OPiOS)/i.test(navigator.userAgent);
+    const isSafari = /Version\/[\d.]+.*Safari\//i.test(navigator.userAgent)
+      && !/(CriOS|FxiOS|EdgiOS|OPiOS|Chrome|Chromium|Android)/i.test(navigator.userAgent);
     setUseSafariLoadingFallback(isSafari);
   }, []);
 
