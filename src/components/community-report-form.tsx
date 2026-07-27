@@ -40,14 +40,18 @@ function observedAreaSquareKm(points: Array<{ latitude: number; longitude: numbe
 
 export function CommunityReportForm({
   embedded = false,
+  isAuthenticated = false,
   initialLocation,
   initialObservedZone = null,
+  onAuthenticationRequired,
   onClose,
   onSaved,
 }: {
   embedded?: boolean;
+  isAuthenticated?: boolean;
   initialLocation?: { latitude: number; longitude: number; label: string };
   initialObservedZone?: Array<{ latitude: number; longitude: number }> | null;
+  onAuthenticationRequired?: () => void;
   onClose?: () => void;
   onSaved?: () => void;
 } = {}) {
@@ -100,6 +104,11 @@ export function CommunityReportForm({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (!isAuthenticated) {
+      setStatus("idle");
+      onAuthenticationRequired?.();
+      return;
+    }
     const parsedLatitude = Number(latitude);
     const parsedLongitude = Number(longitude);
     if (!Number.isFinite(parsedLatitude) || parsedLatitude < -90 || parsedLatitude > 90
@@ -176,6 +185,11 @@ export function CommunityReportForm({
         headers: { "Content-Type": "application/json" },
         method: isEnrichment ? "PATCH" : "POST",
       });
+      if (response.status === 401) {
+        setStatus("idle");
+        onAuthenticationRequired?.();
+        return;
+      }
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.message || "Le signalement n’a pas pu être publié.");
       setStatus("saved");

@@ -6,7 +6,7 @@ import { PasswordResetRequest } from "@/components/password-reset-request";
 
 type AuthMode = "forgot-password" | "sign-in" | "sign-up";
 
-export function AuthAccountPanel() {
+export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => void } = {}) {
   const { data: session, isPending } = authClient.useSession();
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,11 @@ export function AuthAccountPanel() {
       ? await authClient.signUp.email({ email, name, password })
       : await authClient.signIn.email({ email, password });
 
-    if (result.error) setError(result.error.message || "La connexion a échoué.");
+    if (result.error) {
+      setError(result.error.message || "La connexion a échoué.");
+    } else {
+      onAuthenticated?.();
+    }
     setSubmitting(false);
   };
 

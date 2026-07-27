@@ -199,6 +199,24 @@ export function MapExperience() {
     });
   };
 
+  const closeInformationPanel = () => {
+    const panel = informationModalPanelRef.current;
+    if (!panel) {
+      setInformationOpen(false);
+      return;
+    }
+    const mobile = window.matchMedia("(max-width: 720px)").matches;
+    gsap.killTweensOf(panel);
+    gsap.to(panel, {
+      duration: mobile ? 0.3 : 0.22,
+      ease: mobile ? "power3.in" : "power2.in",
+      onComplete: () => setInformationOpen(false),
+      scale: mobile ? 1 : 0.82,
+      transformOrigin: mobile ? "50% 100%" : "100% 0%",
+      yPercent: mobile ? 105 : 0,
+    });
+  };
+
   const closeReportModal = (afterClose?: () => void) => {
     const panel = reportModalPanelRef.current;
     if (!panel) {
@@ -282,13 +300,32 @@ export function MapExperience() {
 
   useEffect(() => {
     const panel = informationModalPanelRef.current;
-    if (!informationOpen || !panel || !window.matchMedia("(max-width: 720px)").matches) return;
+    if (!informationOpen || !panel) return;
+    const mobile = window.matchMedia("(max-width: 720px)").matches;
     gsap.killTweensOf(panel);
-    gsap.fromTo(
-      panel,
-      { transformOrigin: "50% 100%", yPercent: 105 },
-      { duration: 0.38, ease: "power3.out", yPercent: 0 },
-    );
+    if (mobile) {
+      gsap.fromTo(
+        panel,
+        { scale: 1, transformOrigin: "50% 100%", yPercent: 105 },
+        { duration: 0.38, ease: "power3.out", scale: 1, yPercent: 0 },
+      );
+    } else {
+      const panelRect = panel.getBoundingClientRect();
+      const trigger = Array.from(document.querySelectorAll<HTMLElement>("[data-information-trigger]"))
+        .find((element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+      const triggerRect = trigger?.getBoundingClientRect();
+      const transformOrigin = triggerRect
+        ? `${triggerRect.left + triggerRect.width / 2 - panelRect.left}px ${triggerRect.top + triggerRect.height / 2 - panelRect.top}px`
+        : "100% 0%";
+      gsap.fromTo(
+        panel,
+        { scale: 0.82, transformOrigin, yPercent: 0 },
+        { duration: 0.34, ease: "back.out(1.25)", scale: 1, yPercent: 0 },
+      );
+    }
     return () => {
       gsap.killTweensOf(panel);
     };
@@ -370,7 +407,7 @@ export function MapExperience() {
   useEffect(() => {
     if (!informationOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setInformationOpen(false);
+      if (event.key === "Escape") closeInformationPanel();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
@@ -1168,8 +1205,10 @@ export function MapExperience() {
           <div aria-label="Nouveau signalement" aria-modal="true" className="sketch-modal-panel relative max-h-[96dvh] w-full max-w-[680px] overflow-y-auto overscroll-contain px-3.5 pt-[18px] pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" ref={reportModalPanelRef} role="dialog">
             <CommunityReportForm
               embedded
+              isAuthenticated={Boolean(authSession?.user)}
               initialLocation={reportModalLocation}
               initialObservedZone={reportObservedZone}
+              onAuthenticationRequired={() => setAccountOpen(true)}
               onClose={() => closeReportModal(() => {
                 setReportDraftLocation(null);
                 setReportObservedZone(null);
@@ -1219,30 +1258,34 @@ export function MapExperience() {
                 ? `Bienvenue ${authSession.user.name}. Tu peux publier des signalements et retrouver tes contributions.`
                 : "Connecte-toi pour publier des signalements, photos ou vidéos et retrouver tes contributions."}
             </p>
-            <AuthAccountPanel />
+            <AuthAccountPanel
+              onAuthenticated={() => {
+                closeMobileSheet(accountModalPanelRef.current, () => setAccountOpen(false));
+              }}
+            />
           </div>
         </div>
       )}
       {informationOpen && (
         <div
-          className="fixed inset-0 z-2000 flex items-end justify-center bg-[rgba(5,20,18,.58)] md:items-center md:p-6"
+          className="fixed inset-0 z-2000 flex items-end justify-center bg-[rgba(5,20,18,.42)] min-[721px]:inset-auto min-[721px]:top-[141px] min-[721px]:right-[84px] min-[721px]:block min-[721px]:bg-transparent"
           onMouseDown={(event) => {
-            if (event.currentTarget === event.target) {
-              closeMobileSheet(informationModalPanelRef.current, () => setInformationOpen(false));
+            if (event.currentTarget === event.target && window.matchMedia("(max-width: 720px)").matches) {
+              closeInformationPanel();
             }
           }}
         >
           <div
             aria-label="Informations et consignes"
             aria-modal="true"
-            className="information-dialog relative h-[96dvh] w-full max-w-[920px] overflow-y-auto overscroll-contain [overflow-anchor:none] rounded-t-[25px] border-2 border-[#172322] bg-white pb-[env(safe-area-inset-bottom)] md:h-[min(760px,calc(100dvh-48px))] md:rounded-[24px_20px_26px_22px]"
+            className="information-dialog relative max-h-[84dvh] w-full overflow-y-auto overscroll-contain rounded-t-[20px] border-2 border-[#172322] bg-white pb-[calc(12px+env(safe-area-inset-bottom))] text-[#172322] [overflow-anchor:none] min-[721px]:max-h-[min(calc(100dvh-159px),760px)] min-[721px]:w-[420px] min-[721px]:rounded-[19px_15px_21px_16px] min-[721px]:pb-2"
             ref={informationModalPanelRef}
             role="dialog"
           >
             <button
               aria-label="Fermer les informations"
-              className="sticky top-3 z-10 float-right mr-3 grid size-11 place-items-center rounded-full border-2 border-ink bg-paper text-2xl font-bold text-ink shadow-[2px_2px_0_rgba(23,35,34,.24)]"
-              onClick={() => closeMobileSheet(informationModalPanelRef.current, () => setInformationOpen(false))}
+              className="absolute top-3 right-3 z-10 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl text-ink shadow-[1px_1px_0_rgba(23,35,34,.2)]"
+              onClick={closeInformationPanel}
               type="button"
             >
               ×
@@ -1497,6 +1540,7 @@ export function MapExperience() {
           aria-expanded={informationOpen}
           aria-label="Comprendre la carte"
           className={`sketch-tool-button ${informationOpen ? "active" : ""}`}
+          data-information-trigger
           data-tooltip="Informations"
           onClick={() => setInformationOpen(true)}
           type="button"
@@ -1641,7 +1685,7 @@ export function MapExperience() {
         </div>
           <div
             aria-label="Choisir le fond de carte"
-            className={`invisible absolute right-14 bottom-0 grid w-[230px] origin-bottom-right scale-75 gap-2 rounded-[16px_13px_18px_14px] border-2 border-[#172322] bg-white p-3 text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_rgba(23,35,34,.3),0_10px_30px_rgba(0,0,0,.2)] max-[520px]:fixed max-[520px]:right-[max(64px,calc(env(safe-area-inset-right)+64px))] max-[520px]:bottom-[calc(140px+env(safe-area-inset-bottom))] max-[520px]:w-[210px] ${baseMapMenuOpen ? "" : "pointer-events-none"}`}
+            className={`invisible absolute right-[72px] bottom-0 grid w-[230px] origin-bottom-right scale-75 gap-2 rounded-[16px_13px_18px_14px] border-2 border-[#172322] bg-white p-3 text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_rgba(23,35,34,.3),0_10px_30px_rgba(0,0,0,.2)] max-[520px]:fixed max-[520px]:right-[max(74px,calc(env(safe-area-inset-right)+74px))] max-[520px]:bottom-[calc(140px+env(safe-area-inset-bottom))] max-[520px]:w-[210px] ${baseMapMenuOpen ? "" : "pointer-events-none"}`}
             ref={baseMapMenuRef}
             role="menu"
           >
@@ -1705,7 +1749,7 @@ export function MapExperience() {
           open={settingsOpen}
           preferences={mapPreferences}
         />
-        <div className={`map-secondary-tools invisible absolute right-[72px] bottom-0 grid w-[330px] max-h-[min(76dvh,690px)] origin-bottom-right scale-75 rotate-[-.08deg] gap-[9px] overflow-y-auto rounded-[19px_15px_21px_16px] border-2 border-[#172322] bg-white p-[13px] text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_1px_rgba(23,35,34,.38),0_10px_34px_rgba(0,0,0,.22)] max-[520px]:fixed max-[520px]:right-[max(10px,env(safe-area-inset-right))] max-[520px]:bottom-[calc(70px+env(safe-area-inset-bottom))] max-[520px]:left-auto max-[520px]:w-[min(260px,calc(100vw-28px))] max-[520px]:max-h-[calc(100dvh-150px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-[520px]:rotate-[-.15deg] max-[520px]:rounded-[17px_13px_19px_15px] max-[520px]:border-2 max-[520px]:border-[#172322] max-[520px]:bg-white max-[520px]:p-3 max-[520px]:text-[#172322] max-[520px]:shadow-[0_0_0_1px_rgba(255,255,255,.9),3px_3px_0_rgba(23,35,34,.22),0_10px_30px_rgba(0,0,0,.22)] max-[520px]:[&>.sketch-tool-button]:!rounded-[10px_7px_12px_8px] max-[520px]:[&>.watch-tool>summary]:!rounded-[10px_7px_12px_8px] ${moreToolsOpen ? "" : "pointer-events-none"}`} ref={moreToolsRef}>
+        <div className={`map-secondary-tools invisible absolute right-[72px] bottom-0 grid w-[330px] max-h-[min(76dvh,690px)] origin-bottom-right scale-75 rotate-[-.08deg] gap-[9px] overflow-y-auto rounded-[19px_15px_21px_16px] border-2 border-[#172322] bg-white p-[13px] text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_1px_rgba(23,35,34,.38),0_10px_34px_rgba(0,0,0,.22)] max-[520px]:fixed max-[520px]:right-[max(5px,env(safe-area-inset-right))] max-[520px]:z-10 max-[520px]:bottom-[calc(70px+env(safe-area-inset-bottom))] max-[520px]:left-auto max-[520px]:w-[min(260px,calc(100vw-18px))] max-[520px]:max-h-[calc(100dvh-150px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-[520px]:rotate-[-.15deg] max-[520px]:rounded-[17px_13px_19px_15px] max-[520px]:border-2 max-[520px]:border-[#172322] max-[520px]:bg-white max-[520px]:p-3 max-[520px]:text-[#172322] max-[520px]:shadow-[0_0_0_1px_rgba(255,255,255,.9),3px_3px_0_rgba(23,35,34,.22),0_10px_30px_rgba(0,0,0,.22)] max-[520px]:[&>.sketch-tool-button]:!rounded-[10px_7px_12px_8px] max-[520px]:[&>.watch-tool>summary]:!rounded-[10px_7px_12px_8px] ${moreToolsOpen ? "" : "pointer-events-none"}`} ref={moreToolsRef}>
           <div className="mb-[3px] flex items-center justify-between border-b-[1.5px] border-dashed border-[rgba(23,35,34,.5)] px-0.5 pt-0.5 pb-2.5">
             <div className="flex items-center gap-2">
               {mobileMoreSection !== "root" && (
