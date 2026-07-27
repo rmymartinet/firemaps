@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tests et qualité"
+  short_description: "Vérifier tests, types, lint et build"
+  default_prompt: "Utilise $testing-and-quality pour valider cette modification."

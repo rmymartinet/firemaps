@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff Sentinel"
+  short_description: "Préparer une reprise de travail immédiate"
+  default_prompt: "Utilise $handoff pour préparer la reprise de cette session."

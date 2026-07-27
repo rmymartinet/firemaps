@@ -1,0 +1,4 @@
+interface:
+  display_name: "Intégration de données"
+  short_description: "Intégrer une source avec traçabilité"
+  default_prompt: "Utilise $data-source-integration pour intégrer cette nouvelle source."

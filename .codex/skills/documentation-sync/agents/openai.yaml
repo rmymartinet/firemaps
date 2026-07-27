@@ -1,0 +1,4 @@
+interface:
+  display_name: "Synchronisation documentation"
+  short_description: "Garder la documentation fidèle au dépôt"
+  default_prompt: "Utilise $documentation-sync après cette modification importante."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gardien architecture"
+  short_description: "Préserver les choix architecture Sentinel"
+  default_prompt: "Utilise $architecture-guardian avant cette modification structurante."

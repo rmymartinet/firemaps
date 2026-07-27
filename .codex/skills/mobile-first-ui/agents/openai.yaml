@@ -1,0 +1,4 @@
+interface:
+  display_name: "Interface mobile-first"
+  short_description: "Concevoir une interface mobile accessible"
+  default_prompt: "Utilise $mobile-first-ui pour concevoir et vérifier cette interface."

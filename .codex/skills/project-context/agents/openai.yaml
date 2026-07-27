@@ -1,0 +1,4 @@
+interface:
+  display_name: "Contexte Sentinel"
+  short_description: "Comprendre rapidement le produit Sentinel"
+  default_prompt: "Utilise $project-context pour cadrer cette tâche selon le MVP Sentinel."

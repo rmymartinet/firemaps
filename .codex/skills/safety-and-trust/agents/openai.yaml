@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sécurité et confiance"
+  short_description: "Contrôler les risques des informations crise"
+  default_prompt: "Utilise $safety-and-trust pour auditer cette fonctionnalité sensible."
