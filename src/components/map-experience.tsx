@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { distanceKm, formatDistance } from "@/domain/distance";
@@ -177,6 +178,7 @@ export function MapExperience() {
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
   const [loadingScreenLeaving, setLoadingScreenLeaving] = useState(false);
+  const [useSafariLoadingFallback, setUseSafariLoadingFallback] = useState(false);
   const loadingStartedAt = useRef(Date.now());
   const baseMapMenuRef = useRef<HTMLDivElement>(null);
   const baseMapButtonRef = useRef<HTMLButtonElement>(null);
@@ -185,7 +187,6 @@ export function MapExperience() {
   const reportModalPanelRef = useRef<HTMLDivElement>(null);
   const accountModalPanelRef = useRef<HTMLDivElement>(null);
   const informationModalPanelRef = useRef<HTMLDivElement>(null);
-  const loadingVideoRef = useRef<HTMLVideoElement>(null);
 
   const closeMobileSheet = (panel: HTMLElement | null, onComplete: () => void) => {
     if (!panel || !window.matchMedia("(max-width: 720px)").matches) {
@@ -395,35 +396,10 @@ export function MapExperience() {
   }, []);
 
   useEffect(() => {
-    if (!showLoadingScreen) return;
-    const video = loadingVideoRef.current;
-    if (!video) return;
-
-    // Safari exige que l’état muet soit défini avant toute tentative de lecture.
-    video.defaultMuted = true;
-    video.muted = true;
-    video.setAttribute("muted", "");
-    video.setAttribute("playsinline", "");
-
-    const play = () => {
-      if (video.paused) void video.play().catch(() => undefined);
-    };
-    const resumeWhenVisible = () => {
-      if (document.visibilityState === "visible") play();
-    };
-
-    play();
-    video.addEventListener("canplay", play);
-    window.addEventListener("pageshow", play);
-    document.addEventListener("visibilitychange", resumeWhenVisible);
-    document.addEventListener("touchstart", play, { once: true, passive: true });
-    return () => {
-      video.removeEventListener("canplay", play);
-      window.removeEventListener("pageshow", play);
-      document.removeEventListener("visibilitychange", resumeWhenVisible);
-      document.removeEventListener("touchstart", play);
-    };
-  }, [showLoadingScreen]);
+    const isSafari = navigator.vendor.includes("Apple")
+      && !/(CriOS|FxiOS|EdgiOS|OPiOS)/i.test(navigator.userAgent);
+    setUseSafariLoadingFallback(isSafari);
+  }, []);
 
   useEffect(() => {
     if (!loadingScreenLeaving) return;
@@ -1061,18 +1037,30 @@ export function MapExperience() {
           role="status"
         >
           <div className="grid place-items-center gap-5">
-            <video
-              aria-label="Logo Firemaps animé"
-              autoPlay
-              className="size-[clamp(170px,34vw,280px)] object-contain"
-              loop
-              muted
-              ref={loadingVideoRef}
-              playsInline
-              poster="/logo.png"
-              preload="auto"
-              src="/logo.mp4"
-            />
+            <div className="relative size-[clamp(170px,34vw,280px)]" aria-label="Logo Firemaps animé">
+              {useSafariLoadingFallback ? (
+                <Image
+                  alt="Logo Firemaps"
+                  className="loading-logo-fallback object-contain"
+                  fill
+                  priority
+                  sizes="(max-width: 520px) 170px, 280px"
+                  src="/logo.png"
+                />
+              ) : (
+                <video
+                  aria-label="Logo Firemaps animé"
+                  autoPlay
+                  className="absolute inset-0 size-full object-contain"
+                  loop
+                  muted
+                  playsInline
+                  poster="/logo.png"
+                  preload="auto"
+                  src="/logo.mp4"
+                />
+              )}
+            </div>
             <span aria-hidden className="relative h-5 min-w-[280px] whitespace-nowrap text-center text-sm font-black tracking-[.14em] text-[#172322] uppercase">
               <span className="loading-message loading-message-first">Chargement de la carte…</span>
               <span className="loading-message loading-message-second">Protégeons nos forêts</span>
