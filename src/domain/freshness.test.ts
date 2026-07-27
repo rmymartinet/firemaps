@@ -5,4 +5,5 @@ describe("freshness", () => {
   it("classe une observation récente", () => expect(getFreshness("2026-07-25T11:45:00.000Z", now)).toBe("fresh"));
   it("signale une donnée ancienne", () => expect(getFreshness("2026-07-25T08:00:00.000Z", now)).toBe("stale"));
   it("formate un âge lisible", () => expect(formatAge("2026-07-25T10:00:00.000Z", now)).toBe("il y a 2 h"));
+  it("formate les données très anciennes en jours", () => expect(formatAge("2026-07-22T12:00:00.000Z", now)).toBe("il y a 3 j"));
 });

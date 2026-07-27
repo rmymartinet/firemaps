@@ -314,6 +314,7 @@ function DetectionLayers({
               Zone brûlée estimée EFFIS · {formatAreaFromHectares(perimeter.areaHectares, areaUnit)}
             </Tooltip>
             <Popup>
+              <small className="map-data-kind map-data-kind-official">Périmètre officiel estimé</small>
               <div className="popup-title">Zone brûlée estimée EFFIS</div>
               <p><strong>Environ {formatAreaFromHectares(perimeter.areaHectares, areaUnit)}.</strong></p>
               {perimeter.province && <p>{perimeter.province}{perimeter.country ? ` · ${perimeter.country}` : ""}</p>}
@@ -520,6 +521,7 @@ function DetectionLayers({
             >
               <Tooltip>{incident.title} · {formatAge(incident.observedAt)}</Tooltip>
               <Popup>
+                <small className="map-data-kind map-data-kind-satellite">Détection satellite</small>
                 <div className="popup-title">Chaleur détectée ici</div>
                 <p>Vue par satellite {formatAge(incident.observedAt)}.</p>
                 <p><strong>Ce signal ne confirme pas à lui seul un incendie.</strong></p>
@@ -608,18 +610,29 @@ function SelectedLocation({
     >
       <Popup autoPan={false} className="selected-location-popup" closeButton={false} ref={popupRef}>
         <div className="relative">
-          <button
-            aria-label="Fermer"
-            className="absolute -top-3 -right-3 flex size-7 rotate-[.7deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white font-['Comic_Sans_MS','Bradley_Hand',cursive] text-base leading-none text-[#172322]"
-            onClick={(event) => {
-              event.stopPropagation();
-              closeSelection();
-            }}
-            type="button"
-          >
-            ×
-          </button>
-          <div className="popup-title pr-5">{location.label}</div>
+          <div className="popup-title relative pr-10">
+            <span className={kind === "pin" ? "min-w-0 whitespace-nowrap max-[520px]:text-[.9rem] max-[520px]:tracking-[-.045em]" : "min-w-0"}>
+              {kind === "pin" ? (
+                <>
+                  <span className="max-[520px]:hidden">{location.label}</span>
+                  <span className="hidden max-[520px]:inline">
+                    Point sélectionné · {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </span>
+                </>
+              ) : location.label}
+            </span>
+            <button
+              aria-label="Fermer"
+              className="absolute -top-1 right-0 flex size-7 rotate-[.7deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white font-['Comic_Sans_MS','Bradley_Hand',cursive] text-base leading-none text-[#172322]"
+              onClick={(event) => {
+                event.stopPropagation();
+                closeSelection();
+              }}
+              type="button"
+            >
+              ×
+            </button>
+          </div>
           <p>
             {kind === "geolocation"
               ? "Position fournie par cet appareil."
@@ -754,6 +767,7 @@ function CommunityReportsLayer({
         <Marker icon={icon} position={[report.latitude, report.longitude]}>
           <Popup className="community-report-popup">
             <div className="community-popup">
+              <small className="map-data-kind map-data-kind-community">Signalement citoyen</small>
               <span className={`community-status community-status-${status}`}>{communityStatusLabels[status]}</span>
               <div className="popup-title">{communityCategoryLabels[report.category]}</div>
               <p>Observation citoyenne du {new Date(report.capturedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</p>
@@ -885,7 +899,8 @@ function MouseCoordinates({ format }: { format: "decimal" | "dms" }) {
   if (!coordinates) return null;
   return (
     <output
-      className="pointer-events-none absolute bottom-4 left-3 z-[490] whitespace-nowrap text-[.68rem] font-extrabold tracking-[.01em] text-white [text-shadow:-1px_-1px_0_#263532,1px_-1px_0_#263532,-1px_1px_0_#263532,1px_1px_0_#263532] max-[720px]:bottom-[calc(73px+env(safe-area-inset-bottom))] max-[720px]:max-w-[calc(100%-12px)] max-[720px]:overflow-hidden max-[720px]:text-[.6rem] max-[720px]:text-ellipsis"
+      data-testid="mouse-coordinates"
+      className="pointer-events-none absolute bottom-4 left-3 z-[490] whitespace-nowrap text-[.68rem] font-extrabold tracking-[.01em] text-white [text-shadow:-1px_-1px_0_#263532,1px_-1px_0_#263532,-1px_1px_0_#263532,1px_1px_0_#263532] max-[720px]:bottom-[calc(73px+env(safe-area-inset-bottom))] max-[720px]:max-w-[calc(100%-12px)] max-[720px]:overflow-hidden max-[720px]:text-[.6rem] max-[720px]:text-ellipsis max-[520px]:hidden"
       aria-label="Coordonnées du pointeur"
     >
       {format === "dms"
@@ -1488,7 +1503,8 @@ export function IncidentMap({
         closeShape={!reportZoneDrawing || reportDrawingType === "area"}
         clearOnFinish={reportZoneDrawing}
         onCancel={() => {
-          if (!reportZoneDrawing) onFinishAreaMeasure();
+          if (reportZoneDrawing) onReportZoneComplete([]);
+          else onFinishAreaMeasure();
         }}
         onFinish={(points) => {
           if (reportZoneDrawing) onReportZoneComplete(points);

@@ -102,7 +102,8 @@ export function MapSearch({
 
   return (
     <div
-      className={`absolute left-1/2 z-700 w-[560px] max-w-[calc(100%_-_24px)] origin-right -translate-x-1/2 transition-[width,max-width,left,right,transform] duration-350 ease-[cubic-bezier(.22,.8,.26,1)] ${
+      data-testid="map-search"
+      className={`absolute left-1/2 z-700 w-[560px] max-w-[calc(100%_-_24px)] origin-right -translate-x-1/2 transition-[width,max-width,left,right,transform] duration-350 ease-[cubic-bezier(.22,.8,.26,1)] max-[900px]:w-[340px] ${
         mobileOpen
           ? "top-[max(10px,env(safe-area-inset-top))] max-[520px]:!top-[max(10px,env(safe-area-inset-top))] max-[520px]:!right-[max(8px,env(safe-area-inset-right))] max-[520px]:!left-auto max-[520px]:!w-[calc(100%_-_16px_-_env(safe-area-inset-right))] max-[520px]:!max-w-none max-[520px]:!translate-x-0"
           : "top-[max(10px,env(safe-area-inset-top))] max-[520px]:!top-[max(10px,env(safe-area-inset-top))] max-[520px]:!bottom-auto max-[520px]:!left-auto max-[520px]:!right-[max(8px,env(safe-area-inset-right))] max-[520px]:!size-[42px] max-[520px]:!translate-x-0"

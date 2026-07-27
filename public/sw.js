@@ -1,6 +1,6 @@
-const CACHE_NAME = "sentinel-shell-v3";
+const CACHE_NAME = "sentinel-shell-v4";
 const ALERT_CONFIG_URL = "/__sentinel_alert_config__";
-const APP_SHELL = ["/", "/adresse", "/informations", "/urgence", "/icon.svg"];
+const APP_SHELL = ["/logo.png", "/favicon.png"];
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
   self.skipWaiting();
@@ -13,6 +13,10 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  if (event.request.mode === "navigate") {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   if (url.pathname.startsWith("/api/geocoding/")) {
     event.respondWith(fetch(event.request));
     return;
@@ -20,13 +24,12 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(fetch(event.request).then((response) => {
     if (
       response.ok
-      && (event.request.mode === "navigate" || url.pathname === "/api/incidents/firms" || url.pathname === "/api/weather/wind")
+      && (url.pathname === "/api/incidents/firms" || url.pathname === "/api/weather/wind")
     ) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
     return response;
   }).catch(async () => {
     const cached = await caches.match(event.request);
     if (cached) return cached;
-    if (event.request.mode === "navigate") return caches.match("/");
     return Response.json({ message: "Ressource indisponible hors ligne." }, { status: 503 });
   }));
 });

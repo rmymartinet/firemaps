@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   description: "Informations sourcées et prudentes pendant les incendies.",
   applicationName: "Sentinel",
   appleWebApp: { capable: true, title: "Sentinel", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [{ url: "/favicon.png", sizes: "1024x1024", type: "image/png" }],
+    shortcut: "/favicon.png",
+    apple: [{ url: "/logo.png", sizes: "1024x1024", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -74,17 +74,17 @@ body:has(.map-page) .topbar { display: none; }
   left: auto;
   margin: 0;
   padding: 4px 6px;
-  position: relative;
   position: fixed;
-  right: 12px;
+  right: 103px;
   top: 12px;
 }
 .map .leaflet-control-attribution::after {
   color: #46504e;
-  content: "© Esri · Maxar · Earthstar · communauté SIG · Adresses : IGN · Géoplateforme";
+  content: "© Esri · IGN";
   font-size: .58rem;
   font-weight: 750;
 }
+.map .leaflet-control-attribution { display: none; }
 .map .leaflet-control-attribution > * { display: none; }
 .dark-map .dark-base-map-tiles { filter: brightness(1.08) contrast(1.06); }
 .dark-map .dark-reference-map-tiles { filter: brightness(1.28) contrast(1.08); opacity: .96; }
@@ -380,10 +380,17 @@ body:has(.map-page) .topbar { display: none; }
 .burn-analysis-result small { color: var(--muted); line-height: 1.3; }
 .legend { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .popup-title { font-weight: 800; }
+.map-data-kind { display: inline-block; font-size: .58rem; font-weight: 950; letter-spacing: .08em; margin-bottom: 5px; text-transform: uppercase; }
+.map-data-kind-satellite { color: #b72d1f; }
+.map-data-kind-official { color: #84291f; text-decoration: underline dashed; text-underline-offset: 3px; }
+.map-data-kind-community { color: #176f96; }
 .emergency-actions { display: grid; gap: 12px; }
 .emergency-call { background: #a9261b; border-radius: 14px; color: white; font-size: 1.2rem; font-weight: 900; padding: 18px; text-align: center; text-decoration: none; }
 @media (min-width: 760px) {
   .bottom-nav { border: 1px solid var(--line); border-radius: 18px 18px 0 0; left: 50%; max-width: 600px; transform: translateX(-50%); }
+}
+@media (max-width: 900px) {
+  .map .leaflet-control-attribution { right: 12px; }
 }
 @media (max-width: 520px) {
   .sketch-modal-panel { border-radius: 24px 24px 0 0; border-bottom: 0; transform: none; }
@@ -435,6 +442,7 @@ body:has(.map-page) .topbar { display: none; }
     bottom: auto;
     margin-right: max(8px, env(safe-area-inset-right));
     padding: 3px 5px;
+    right: max(8px, env(safe-area-inset-right));
     top: calc(8px + env(safe-area-inset-top));
   }
   .map .leaflet-control-attribution::after { content: "© Sources cartographiques"; font-size: .52rem; }
@@ -449,4 +457,12 @@ body:has(.map-page) .topbar { display: none; }
   .loading-message-second { display: none; }
   .wind-arrow-flow { animation: none; }
   .leaflet-zoom-animated { transition: none !important; }
+}
+
+@keyframes loading-screen-failsafe {
+  0%, 92% { opacity: 1; pointer-events: auto; visibility: visible; }
+  100% { opacity: 0; pointer-events: none; visibility: hidden; }
+}
+.loading-screen-failsafe {
+  animation: loading-screen-failsafe 5s ease-out forwards;
 }

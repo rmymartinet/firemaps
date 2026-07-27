@@ -110,7 +110,8 @@ export function MapExperience() {
   const [measureArea, setMeasureArea] = useState(false);
   const [showMeasureHint, setShowMeasureHint] = useState(false);
   const [windState, setWindState] = useState<WindLoadState>({ status: "idle", observations: [] });
-  const [effisPerimeters, setEffisPerimeters] = useState<EffisPerimeter[]>([]);
+  const windLoadedRef = useRef(false);
+  const effisPerimeters: EffisPerimeter[] = [];
   const [officialNotices, setOfficialNotices] = useState<OfficialNotice[]>([]);
   const [officialNoticesStatus, setOfficialNoticesStatus] = useState<"loading" | "ready" | "error">("loading");
   const [forestWeatherState, setForestWeatherState] = useState<ForestWeatherState>({ status: "idle" });
@@ -155,9 +156,10 @@ export function MapExperience() {
   const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "ready" | "error" | "zoom">("idle");
   const [historyTotal, setHistoryTotal] = useState(0);
   const [moreToolsOpen, setMoreToolsOpen] = useState(false);
-  const [mobileMoreSection, setMobileMoreSection] = useState<"root" | "layers" | "measure" | "watch">("root");
+  const [mobileMoreSection, setMobileMoreSection] = useState<"root" | "layers" | "measure" | "sources" | "watch">("root");
   const [baseMapMenuOpen, setBaseMapMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [signalSummaryOpen, setSignalSummaryOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [informationOpen, setInformationOpen] = useState(false);
@@ -171,6 +173,22 @@ export function MapExperience() {
   const moreToolsRef = useRef<HTMLDivElement>(null);
   const moreToolsButtonRef = useRef<HTMLButtonElement>(null);
   const reportModalPanelRef = useRef<HTMLDivElement>(null);
+  const accountModalPanelRef = useRef<HTMLDivElement>(null);
+  const informationModalPanelRef = useRef<HTMLDivElement>(null);
+
+  const closeMobileSheet = (panel: HTMLElement | null, onComplete: () => void) => {
+    if (!panel || !window.matchMedia("(max-width: 720px)").matches) {
+      onComplete();
+      return;
+    }
+    gsap.killTweensOf(panel);
+    gsap.to(panel, {
+      duration: 0.3,
+      ease: "power3.in",
+      onComplete,
+      yPercent: 105,
+    });
+  };
 
   const closeReportModal = (afterClose?: () => void) => {
     const panel = reportModalPanelRef.current;
@@ -180,30 +198,34 @@ export function MapExperience() {
       return;
     }
     gsap.killTweensOf(panel);
+    const mobile = window.matchMedia("(max-width: 720px)").matches;
     gsap.to(panel, {
-      duration: 0.22,
-      ease: "power2.in",
+      duration: mobile ? 0.3 : 0.22,
+      ease: mobile ? "power3.in" : "power2.in",
       onComplete: () => {
         setReportModalLocation(null);
         afterClose?.();
       },
-      scale: 0.72,
-      transformOrigin: "50% 50%",
+      scale: mobile ? 1 : 0.72,
+      transformOrigin: mobile ? "50% 100%" : "50% 50%",
+      yPercent: mobile ? 105 : 0,
     });
   };
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem(MAP_THEME_KEY);
-    setDarkMap(storedTheme ? storedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
     try {
+      const storedTheme = window.localStorage.getItem(MAP_THEME_KEY);
+      setDarkMap(storedTheme ? storedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
       const storedPreferences = JSON.parse(window.localStorage.getItem(MAP_PREFERENCES_KEY) ?? "{}") as Partial<MapPreferences>;
       const preferences = { ...defaultMapPreferences, ...storedPreferences };
       setMapPreferences(preferences);
       setAlertRadiusKm(preferences.alertRadiusKm);
     } catch {
+      setDarkMap(window.matchMedia("(prefers-color-scheme: dark)").matches);
       setMapPreferences(defaultMapPreferences);
+    } finally {
+      setPreferencesReady(true);
     }
-    setPreferencesReady(true);
   }, []);
 
   useEffect(() => {
@@ -220,15 +242,48 @@ export function MapExperience() {
     const panel = reportModalPanelRef.current;
     if (!reportModalLocation || !panel) return;
     gsap.killTweensOf(panel);
+    const mobile = window.matchMedia("(max-width: 720px)").matches;
     gsap.fromTo(
       panel,
-      { scale: 0.72, transformOrigin: "50% 50%" },
-      { duration: 0.32, ease: "back.out(1.3)", scale: 1 },
+      mobile
+        ? { scale: 1, transformOrigin: "50% 100%", yPercent: 105 }
+        : { scale: 0.72, transformOrigin: "50% 50%", yPercent: 0 },
+      mobile
+        ? { duration: 0.38, ease: "power3.out", scale: 1, yPercent: 0 }
+        : { duration: 0.32, ease: "back.out(1.3)", scale: 1, yPercent: 0 },
     );
     return () => {
       gsap.killTweensOf(panel);
     };
   }, [reportModalLocation]);
+
+  useEffect(() => {
+    const panel = accountModalPanelRef.current;
+    if (!accountOpen || !panel || !window.matchMedia("(max-width: 720px)").matches) return;
+    gsap.killTweensOf(panel);
+    gsap.fromTo(
+      panel,
+      { transformOrigin: "50% 100%", yPercent: 105 },
+      { duration: 0.38, ease: "power3.out", yPercent: 0 },
+    );
+    return () => {
+      gsap.killTweensOf(panel);
+    };
+  }, [accountOpen]);
+
+  useEffect(() => {
+    const panel = informationModalPanelRef.current;
+    if (!informationOpen || !panel || !window.matchMedia("(max-width: 720px)").matches) return;
+    gsap.killTweensOf(panel);
+    gsap.fromTo(
+      panel,
+      { transformOrigin: "50% 100%", yPercent: 105 },
+      { duration: 0.38, ease: "power3.out", yPercent: 0 },
+    );
+    return () => {
+      gsap.killTweensOf(panel);
+    };
+  }, [informationOpen]);
 
   useEffect(() => {
     const panel = baseMapMenuRef.current;
@@ -550,7 +605,7 @@ export function MapExperience() {
       const nearest = newNearbyIncidents.reduce((closest, incident) =>
         distanceKm(savedLocation, incident) < distanceKm(savedLocation, closest) ? incident : closest);
       new Notification("Nouvelle activité thermique à proximité", {
-        body: `${newNearbyIncidents.length} nouveau${newNearbyIncidents.length > 1 ? "x" : ""} signal${newNearbyIncidents.length > 1 ? "aux" : ""} dans un rayon de ${alertRadiusKm} km autour de ${savedLocation.label}. Le plus proche est à ${formatDistance(distanceKm(savedLocation, nearest))}.`,
+        body: `${newNearbyIncidents.length} ${newNearbyIncidents.length === 1 ? "nouveau signal" : "nouveaux signaux"} dans un rayon de ${alertRadiusKm} km autour de ${savedLocation.label}. Le plus proche est à ${formatDistance(distanceKm(savedLocation, nearest))}.`,
         icon: "/icon.svg",
       });
     }
@@ -588,6 +643,7 @@ export function MapExperience() {
   }, [mapPreferences.timelineRangeDays, refreshRevision]);
 
   useEffect(() => {
+    if (!showWind || windLoadedRef.current) return;
     const controller = new AbortController();
     async function loadWind() {
       setWindState({ status: "loading", observations: [] });
@@ -595,6 +651,7 @@ export function MapExperience() {
         const response = await fetch("/api/weather/wind", { signal: controller.signal });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.message || "Les données de vent sont indisponibles.");
+        windLoadedRef.current = true;
         setWindState({ status: "ready", observations: payload.observations, fetchedAt: payload.fetchedAt });
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -607,22 +664,7 @@ export function MapExperience() {
     }
     loadWind();
     return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    async function loadEffisPerimeters() {
-      try {
-        const response = await fetch("/api/perimeters/effis", { signal: controller.signal });
-        const payload = await response.json();
-        if (!controller.signal.aborted && Array.isArray(payload.perimeters)) setEffisPerimeters(payload.perimeters);
-      } catch {
-        if (!controller.signal.aborted) setEffisPerimeters([]);
-      }
-    }
-    loadEffisPerimeters();
-    return () => controller.abort();
-  }, []);
+  }, [showWind]);
 
   const deduplicatedIncidents = useMemo(() => deduplicateSatelliteIncidents(state.incidents), [state.incidents]);
   const visibleIncidents = useMemo(() => {
@@ -676,6 +718,9 @@ export function MapExperience() {
         : providerLatestIncident && referenceTime - new Date(providerLatestIncident.observedAt).getTime() <= 3 * 3_600_000
           ? { className: "quality-fresh", label: "Données récentes" }
           : { className: "quality-stale", label: "Données anciennes" };
+  const satelliteUpdateLabel = state.status === "ready"
+    ? `Mis à jour ${formatAge(state.fetchedAt, new Date(clock))}`
+    : dataQuality.label;
   const locateUser = () => {
     if (!navigator.geolocation) {
       setGeolocationStatus("error");
@@ -875,7 +920,7 @@ export function MapExperience() {
         <div
           aria-label="Chargement de la carte"
           aria-live="polite"
-          className="fixed inset-0 z-[5000] grid place-items-center bg-white"
+          className="loading-screen-failsafe fixed inset-0 z-[5000] grid place-items-center bg-white"
           role="status"
         >
           <div className="grid place-items-center gap-5">
@@ -886,9 +931,11 @@ export function MapExperience() {
               loop
               muted
               playsInline
-              preload="auto"
-              src="/logo.mp4"
-            />
+              poster="/logo.png"
+              preload="metadata"
+            >
+              <source media="(min-width: 521px)" src="/logo.mp4" type="video/mp4" />
+            </video>
             <span aria-hidden className="relative h-5 min-w-[280px] whitespace-nowrap text-center text-sm font-black tracking-[.14em] text-[#172322] uppercase">
               <span className="loading-message loading-message-first">Chargement de la carte…</span>
               <span className="loading-message loading-message-second">Protégeons nos forêts</span>
@@ -920,8 +967,14 @@ export function MapExperience() {
         onFinishAreaMeasure={() => setMeasureArea(false)}
         onFinishDistanceMeasure={() => setMeasureDistance(false)}
         onReportZoneComplete={(points) => {
-          setReportObservedZone(points);
           setReportZoneDrawing(false);
+          if (points.length === 0) {
+            setReportDraftLocation(null);
+            setReportObservedZone(null);
+            setReportModalLocation(null);
+            return;
+          }
+          setReportObservedZone(points);
           if (reportDraftLocation && points.length > 0) {
             const latitude = points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
             const longitude = points.reduce((sum, point) => sum + point.longitude, 0) / points.length;
@@ -990,6 +1043,48 @@ export function MapExperience() {
           setPositionAccuracy(null);
         }}
       />
+      <details className="group absolute top-3 right-3 z-[710] max-[520px]:hidden" data-testid="map-sources">
+        <summary className="flex min-h-8 cursor-pointer list-none items-center gap-1.5 rounded-[8px_6px_9px_7px] border-[1.5px] border-[#263532] bg-white/95 px-2.5 text-[.7rem] font-extrabold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.18)] backdrop-blur-md [&::-webkit-details-marker]:hidden">
+          <span aria-hidden>ⓘ</span>
+          © Sources
+          <span className="transition-transform duration-300 group-open:rotate-180" aria-hidden>⌄</span>
+        </summary>
+        <section className="absolute top-[calc(100%+8px)] right-0 grid w-[min(360px,calc(100vw-24px))] gap-3 rounded-[14px_11px_16px_12px] border-2 border-[#172322] bg-white/97 p-4 text-[#172322] shadow-[4px_5px_0_rgba(23,35,34,.2)] backdrop-blur-xl">
+          <div>
+            <small className="font-black tracking-[.12em] uppercase">Sources de la carte</small>
+            <h2 className="mt-1 mb-0 text-lg">D’où viennent les informations ?</h2>
+          </div>
+          <dl className="m-0 grid gap-2 text-xs [&_dd]:m-0 [&_dd]:text-muted [&_dt]:font-extrabold">
+            <div><dt>Feux détectés</dt><dd>NASA LANCE FIRMS · satellites VIIRS.</dd></div>
+            <div><dt>Périmètres et historique</dt><dd>EFFIS et BDIFF · données distinctes des détections récentes.</dd></div>
+            <div><dt>Vent, fumée et qualité de l’air</dt><dd>Open-Meteo, modèles Météo-France et CAMS.</dd></div>
+            <div><dt>Adresses et végétation</dt><dd>IGN · Géoplateforme.</dd></div>
+            <div><dt>Fonds cartographiques</dt><dd>Esri, Maxar, Earthstar Geographics et communauté SIG.</dd></div>
+            <div><dt>Observations citoyennes</dt><dd>Contributions des utilisateurs, affichées comme non vérifiées par défaut.</dd></div>
+          </dl>
+          <p className="m-0 border-t border-dashed border-[#263532]/50 pt-3 text-[.68rem] font-bold text-muted">
+            Une détection satellite ne confirme ni un incendie ni une surface brûlée.
+          </p>
+        </section>
+      </details>
+      <aside
+        aria-label="Légende des types d’informations"
+        className="absolute top-[78px] left-3 z-[495] flex rotate-[-.2deg] items-center gap-2 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] bg-white/92 px-2 py-1.5 text-[.62rem] font-extrabold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.16)] backdrop-blur-md max-[520px]:hidden"
+        data-testid="map-mini-legend"
+      >
+        <span className="flex items-center gap-1" title="Détection satellite">
+          <i className="relative size-3 rounded-full border border-[#d9482f] bg-[#ffe0d5] after:absolute after:inset-[3px] after:rounded-full after:bg-[#ff321f] after:content-['']" />
+          <span className="max-[520px]:sr-only">Satellite</span>
+        </span>
+        <span className="flex items-center gap-1" title="Périmètre officiel estimé">
+          <i className="size-3 rotate-[4deg] border border-dashed border-[#84291f] bg-[#f5d8d2]" />
+          <span className="max-[520px]:sr-only">Officiel</span>
+        </span>
+        <span className="flex items-center gap-1" title="Signalement citoyen">
+          <i className="grid size-3 place-items-center rounded-[45%_55%_48%_52%] border border-[#172322] bg-white text-[.62rem] leading-none text-[#d9482f]">+</i>
+          <span className="max-[520px]:sr-only">Citoyen</span>
+        </span>
+      </aside>
       {(measureDistance || measureArea) && showMeasureHint && (
         <aside
           aria-live="polite"
@@ -1010,7 +1105,7 @@ export function MapExperience() {
       {reportZoneDrawing && (
         <aside
           aria-live="polite"
-          className="absolute top-[78px] left-1/2 z-650 flex w-max max-w-[calc(100%_-_96px)] -translate-x-1/2 rotate-[-.25deg] items-center gap-3 rounded-[12px_9px_14px_10px] border-2 border-dashed border-[#176f96] bg-white px-4 py-3 text-[#172322] shadow-[3px_3px_0_rgba(23,35,34,.2)]"
+          className="absolute top-[78px] left-1/2 z-650 flex w-max max-w-[calc(100%_-_96px)] -translate-x-1/2 rotate-[-.25deg] items-center gap-3 rounded-[12px_9px_14px_10px] border-2 border-dashed border-[#176f96] bg-white px-4 py-3 text-[#172322] shadow-[3px_3px_0_rgba(23,35,34,.2)] max-[520px]:right-[64px] max-[520px]:left-[max(8px,env(safe-area-inset-left))] max-[520px]:w-auto max-[520px]:max-w-none max-[520px]:translate-x-0 max-[520px]:gap-2 max-[520px]:px-3"
         >
           <span className="grid gap-0.5 text-left">
             <strong className="text-sm">Dessiner la zone observée</strong>
@@ -1029,7 +1124,9 @@ export function MapExperience() {
           </span>
           <button className="min-h-9 rounded-[8px_6px_9px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-xs font-black" onClick={() => {
             setReportZoneDrawing(false);
-            setReportModalLocation(reportDraftLocation);
+            setReportDraftLocation(null);
+            setReportObservedZone(null);
+            setReportModalLocation(null);
           }} type="button">Annuler</button>
         </aside>
       )}
@@ -1073,15 +1170,17 @@ export function MapExperience() {
         <div
           className="fixed inset-0 z-2000 flex items-end justify-center bg-[rgba(5,20,18,.5)] md:items-center md:p-6"
           onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setAccountOpen(false);
+            if (event.currentTarget === event.target) {
+              closeMobileSheet(accountModalPanelRef.current, () => setAccountOpen(false));
+            }
           }}
         >
-          <div aria-label="Connexion" aria-modal="true" className="sketch-modal-panel relative grid max-h-[96dvh] w-full max-w-[430px] gap-4 overflow-y-auto overscroll-contain px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" role="dialog">
+          <div aria-label="Connexion" aria-modal="true" className="sketch-modal-panel relative grid max-h-[96dvh] w-full max-w-[430px] gap-4 overflow-y-auto overscroll-contain px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" ref={accountModalPanelRef} role="dialog">
             <header className="border-b-[1.5px] border-dashed border-[#263532]/55 pb-3">
               <small className="font-black tracking-[.12em] uppercase">Compte</small>
               <h2 className="m-0 text-xl font-black">{authSession?.user ? "Mon compte" : "Connexion"}</h2>
             </header>
-            <button aria-label="Fermer la connexion" className="absolute top-3 right-3 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl" onClick={() => setAccountOpen(false)} type="button">×</button>
+            <button aria-label="Fermer la connexion" className="absolute top-3 right-3 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl" onClick={() => closeMobileSheet(accountModalPanelRef.current, () => setAccountOpen(false))} type="button">×</button>
             <p className="m-0 text-sm leading-relaxed text-muted">
               {authSession?.user
                 ? `Bienvenue ${authSession.user.name}. Tu peux publier des signalements et retrouver tes contributions.`
@@ -1095,19 +1194,22 @@ export function MapExperience() {
         <div
           className="fixed inset-0 z-2000 flex items-end justify-center bg-[rgba(5,20,18,.58)] md:items-center md:p-6"
           onMouseDown={(event) => {
-            if (event.currentTarget === event.target) setInformationOpen(false);
+            if (event.currentTarget === event.target) {
+              closeMobileSheet(informationModalPanelRef.current, () => setInformationOpen(false));
+            }
           }}
         >
           <div
             aria-label="Informations et consignes"
             aria-modal="true"
             className="information-dialog relative h-[96dvh] w-full max-w-[920px] overflow-y-auto overscroll-contain [overflow-anchor:none] rounded-t-[25px] border-2 border-[#172322] bg-white pb-[env(safe-area-inset-bottom)] md:h-[min(760px,calc(100dvh-48px))] md:rounded-[24px_20px_26px_22px]"
+            ref={informationModalPanelRef}
             role="dialog"
           >
             <button
               aria-label="Fermer les informations"
               className="sticky top-3 z-10 float-right mr-3 grid size-11 place-items-center rounded-full border-2 border-ink bg-paper text-2xl font-bold text-ink shadow-[2px_2px_0_rgba(23,35,34,.24)]"
-              onClick={() => setInformationOpen(false)}
+              onClick={() => closeMobileSheet(informationModalPanelRef.current, () => setInformationOpen(false))}
               type="button"
             >
               ×
@@ -1195,6 +1297,7 @@ export function MapExperience() {
       )}
       {state.status !== "loading" && (
         <div
+          data-testid="map-timeline"
           className={`absolute right-3 bottom-3 left-3 z-510 flex min-h-[68px] items-center gap-[7px] rounded-[27px_24px_29px_25px] border-2 p-[7px_9px] text-[#172322] shadow-[1px_1px_0_rgba(23,35,34,.55),0_0_0_1px_rgba(23,35,34,.7),3px_4px_0_rgba(23,35,34,.18)] backdrop-blur-[7px] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[25px_28px_24px_29px] after:border after:border-[#172322]/42 after:content-[''] [.map-high-contrast_&]:!border-black [.map-high-contrast_&]:!shadow-[0_0_0_2px_#fff,0_0_0_4px_#000] min-[521px]:right-auto min-[521px]:left-1/2 min-[521px]:w-[calc(100%_-_24px)] min-[521px]:max-w-[780px] min-[521px]:-translate-x-1/2 max-[520px]:right-2 max-[520px]:bottom-[calc(8px+env(safe-area-inset-bottom))] max-[520px]:left-2 max-[520px]:min-h-[54px] max-[520px]:gap-[3px] max-[520px]:p-[5px_8px] ${showHistory ? "border-[#4c2d52] bg-[rgba(250,244,251,.95)] [&_input[type=range]]:accent-[#6f3f72]" : "border-white/95 bg-white/95"}`}
           aria-label="Chronologie de la carte"
         >
@@ -1576,7 +1679,7 @@ export function MapExperience() {
                 <button className="hidden cursor-pointer border-0 bg-transparent p-0 text-lg font-black max-[520px]:block" onClick={() => setMobileMoreSection("root")} type="button">←</button>
               )}
               <strong className="text-[.95rem]">
-                {mobileMoreSection === "layers" ? "Couches de la carte" : mobileMoreSection === "measure" ? "Mesurer" : mobileMoreSection === "watch" ? "Surveiller un lieu" : "Autres outils"}
+                {mobileMoreSection === "layers" ? "Couches de la carte" : mobileMoreSection === "measure" ? "Mesurer" : mobileMoreSection === "sources" ? "Sources" : mobileMoreSection === "watch" ? "Surveiller un lieu" : "Autres outils"}
               </strong>
             </div>
             <button aria-label="Fermer" className="flex size-8 rotate-[.8deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-[1.4rem] text-[#172322] shadow-[1px_1px_0_rgba(23,35,34,.25)]" onClick={() => setMoreToolsOpen(false)} type="button">×</button>
@@ -1596,6 +1699,10 @@ export function MapExperience() {
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("watch")} type="button">
               <span aria-hidden>☆</span><span>Surveiller un lieu</span>
               {activeWatchCount > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-[48%_52%_45%_55%] border-2 border-white bg-[#d9482f] text-[.62rem] font-black text-white shadow-[1px_1px_0_rgba(23,35,34,.35)]">{activeWatchCount}</span>}
+              <span className="ml-auto">›</span>
+            </button>
+            <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("sources")} type="button">
+              <span aria-hidden>ⓘ</span><span>Sources des données</span>
               <span className="ml-auto">›</span>
             </button>
             <div className="mt-1 flex items-center justify-center gap-3 border-t border-dashed border-[#172322]/40 pt-2">
@@ -1630,6 +1737,20 @@ export function MapExperience() {
                 <button className={mobileSecondaryButtonClass} onClick={() => { saveSelectedLocation(); setMoreToolsOpen(false); }} type="button"><span aria-hidden>☆</span><span>Surveiller ce lieu</span></button>
               </>
             ) : <p className="m-0 rounded-lg border border-dashed border-[#263532] p-2">Aucun lieu sélectionné.</p>}
+          </div>
+        )}
+        {mobileMoreSection === "sources" && (
+          <div className="hidden gap-3 text-xs max-[520px]:grid">
+            <p className="m-0 font-bold text-[#5d6d69]">Les données visibles ne décrivent pas toutes la même chose.</p>
+            <dl className="m-0 grid gap-2 [&_dd]:m-0 [&_dd]:text-[#5d6d69] [&_dt]:font-extrabold">
+              <div><dt>Feux détectés</dt><dd>NASA LANCE FIRMS · satellites VIIRS.</dd></div>
+              <div><dt>Périmètres et historique</dt><dd>EFFIS et BDIFF.</dd></div>
+              <div><dt>Vent, fumée et qualité de l’air</dt><dd>Open-Meteo, Météo-France et CAMS.</dd></div>
+              <div><dt>Adresses et végétation</dt><dd>IGN · Géoplateforme.</dd></div>
+              <div><dt>Fonds cartographiques</dt><dd>Esri, Maxar, Earthstar et communauté SIG.</dd></div>
+              <div><dt>Observations citoyennes</dt><dd>Contributions non vérifiées par défaut.</dd></div>
+            </dl>
+            <p className="m-0 border-t border-dashed border-[#263532]/50 pt-3 text-[.68rem] font-bold text-[#5d6d69]">Une détection satellite ne confirme ni un incendie ni une surface brûlée.</p>
           </div>
         )}
         <button
@@ -1794,22 +1915,30 @@ export function MapExperience() {
         </details>
         </div>
       </nav>
-      <details
-        className={`group absolute left-3 top-3 z-[500] w-[min(340px,calc(100%-92px))] max-w-[calc(100%-92px)] open:max-h-[calc(100%-94px)] open:overflow-y-auto open:rounded-[18px_15px_20px_16px] open:border-2 open:border-[#172322] open:bg-[rgba(255,255,255,.96)] open:bg-[repeating-linear-gradient(7deg,transparent_0_15px,rgba(23,35,34,.025)_15px_16px,transparent_16px_23px)] open:shadow-[0_0_0_1px_rgba(255,255,255,.9),1px_1px_0_2px_rgba(23,35,34,.28),5px_6px_0_rgba(23,35,34,.15)] open:backdrop-blur-[9px] open:[transform:rotate(-.15deg)] max-[720px]:left-[max(8px,env(safe-area-inset-left))] max-[720px]:top-[calc(8px+env(safe-area-inset-top))] max-[720px]:max-w-[calc(100%-76px)] max-[720px]:open:max-h-[calc(100%-84px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-[720px]:open:w-[calc(100vw-76px)] [&_h1]:my-[6px] [&_h1]:mb-1 [&_h1]:text-[1.08rem] [&_p]:my-[3px] [&_p]:text-[.82rem] ${mobileSearchOpen ? "max-[520px]:!hidden" : ""}`}
+      <div
+        data-testid="signal-summary"
+        className={`absolute left-3 top-3 z-[500] w-[min(340px,calc(100%-92px))] max-w-[calc(100%-92px)] transition-[width,box-shadow,background-color,border-color] duration-300 max-[720px]:left-[max(8px,env(safe-area-inset-left))] max-[720px]:top-[calc(8px+env(safe-area-inset-top))] max-[720px]:max-w-[calc(100%-76px)] [&_h1]:my-[6px] [&_h1]:mb-1 [&_h1]:text-[1.08rem] [&_p]:my-[3px] [&_p]:text-[.82rem] ${signalSummaryOpen ? "max-h-[calc(100%-94px)] overflow-y-auto rounded-[18px_15px_20px_16px] border-2 border-[#172322] bg-[rgba(255,255,255,.96)] bg-[repeating-linear-gradient(7deg,transparent_0_15px,rgba(23,35,34,.025)_15px_16px,transparent_16px_23px)] shadow-[0_0_0_1px_rgba(255,255,255,.9),1px_1px_0_2px_rgba(23,35,34,.28),5px_6px_0_rgba(23,35,34,.15)] backdrop-blur-[9px] [transform:rotate(-.15deg)] max-[720px]:max-h-[calc(100%-84px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-[720px]:w-[calc(100vw-76px)]" : ""} ${mobileSearchOpen ? "max-[520px]:!hidden" : ""}`}
         aria-live="polite"
       >
-        <summary className="relative inline-flex min-h-[54px] cursor-pointer list-none select-none items-center gap-[9px] rounded-[17px_14px_19px_15px] border-2 border-[#172322] bg-[rgba(255,255,255,.96)] px-[11px] py-[7px] pl-2 text-[var(--ink)] shadow-[0_0_0_1px_rgba(255,255,255,.88),3px_3px_0_rgba(23,35,34,.25)] [transform:rotate(-.45deg)] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[15px_18px_14px_19px] after:border after:border-[rgba(23,35,34,.42)] after:content-[''] focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[#8ce1dd] group-open:m-1 group-open:w-[calc(100%-8px)] group-open:transform-none group-open:rounded-lg group-open:border-transparent group-open:bg-transparent group-open:shadow-none group-open:after:hidden max-[720px]:min-h-[50px] max-[720px]:px-[9px] max-[720px]:py-1.5 max-[720px]:pl-[7px] [&::-webkit-details-marker]:hidden">
+        <button
+          aria-expanded={signalSummaryOpen}
+          className={`relative inline-flex min-h-[54px] cursor-pointer select-none items-center gap-[9px] rounded-[17px_14px_19px_15px] border-2 border-[#172322] bg-[rgba(255,255,255,.96)] px-[11px] py-[7px] pl-2 text-[var(--ink)] shadow-[0_0_0_1px_rgba(255,255,255,.88),3px_3px_0_rgba(23,35,34,.25)] [transform:rotate(-.45deg)] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[15px_18px_14px_19px] after:border after:border-[rgba(23,35,34,.42)] after:content-[''] focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[#8ce1dd] max-[720px]:min-h-[50px] max-[720px]:px-[9px] max-[720px]:py-1.5 max-[720px]:pl-[7px] ${signalSummaryOpen ? "m-1 w-[calc(100%-8px)] transform-none rounded-lg border-transparent bg-transparent shadow-none after:hidden" : ""}`}
+          onClick={() => setSignalSummaryOpen((open) => !open)}
+          type="button"
+        >
           <span className="flex size-[38px] items-center justify-center rounded-[48%_52%_44%_56%] border-[1.7px] border-[var(--fire)] bg-[rgba(255,246,242,.98)] text-[var(--fire)] [transform:rotate(-2deg)] [&_.hand-drawn-tool-icon]:size-6"><SketchIcon name="fire" /></span>
           <span className="grid text-left leading-[1.05] [&_strong]:text-[.8rem]">
             <strong>
               {state.status === "ready"
-                ? `${visibleIncidents.length} signal${visibleIncidents.length > 1 ? "aux" : ""}`
+                ? `${visibleIncidents.length} ${visibleIncidents.length === 1 ? "signal" : "signaux"}`
                 : state.status === "loading" ? "Recherche en cours" : "Données indisponibles"}
             </strong>
-            <small className="mt-1 text-[.62rem] text-[var(--muted)]">{state.status === "ready" ? dataQuality.label : "Touchez pour les détails"}</small>
+            <small className="mt-1 text-[.62rem] text-[var(--muted)]">{state.status === "ready" ? satelliteUpdateLabel : "Touchez pour les détails"}</small>
           </span>
-          <span className="ml-auto font-['Comic_Sans_MS','Bradley_Hand',cursive] text-[1.2rem] transition-transform duration-300 group-open:rotate-180" aria-hidden>⌄</span>
-        </summary>
+          <span className={`ml-auto font-['Comic_Sans_MS','Bradley_Hand',cursive] text-[1.2rem] transition-transform duration-300 ${signalSummaryOpen ? "rotate-180" : ""}`} aria-hidden>⌄</span>
+        </button>
+        <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${signalSummaryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+        <div className="min-h-0 overflow-hidden">
         <div className="border-t-[1.5px] border-dashed border-[rgba(38,53,50,.58)] px-[13px] pb-[13px] pt-[11px]">
         <div className="flex flex-wrap gap-[5px]">
           <span className="badge badge-satellite">🔥 SIGNAUX SATELLITE</span>
@@ -1819,7 +1948,7 @@ export function MapExperience() {
         {state.status === "error" && <><h1>Source satellite indisponible</h1><p>{state.message}</p><p>Aucune donnée affichée ne signifie pas qu’il n’y a pas de feu.</p></>}
         {state.status === "ready" && (
           <>
-            <h1>{visibleIncidents.length} signal{visibleIncidents.length > 1 ? "aux" : ""} vu{visibleIncidents.length > 1 ? "s" : ""} récemment</h1>
+            <h1>{visibleIncidents.length} {visibleIncidents.length === 1 ? "signal vu" : "signaux vus"} récemment</h1>
             <p className="!mt-2 border-l-[3px] border-[var(--fire)] py-1.5 pl-[9px] font-bold leading-[1.4]">
               {visibleIncidents.length === 0
                 ? "Aucun signal satellite visible dans la période choisie."
@@ -1830,7 +1959,9 @@ export function MapExperience() {
                     : "Une activité thermique récente est visible sur la carte."}
             </p>
             <p className="text-[var(--muted)]">
-              {latestIncident ? `Dernière observation : ${formatAge(latestIncident.observedAt)}.` : "Aucune observation récente."}
+              <strong>{satelliteUpdateLabel}.</strong>
+              <br />
+              {latestIncident ? `Dernier signal observé ${formatAge(latestIncident.observedAt, new Date(clock))}.` : "Aucun signal récent dans la zone visible."}
             </p>
           </>
         )}
@@ -1873,7 +2004,7 @@ export function MapExperience() {
             <summary className="cursor-pointer text-[.72rem] font-extrabold text-[#40514e] group-open/technical:mb-[7px]">Détails techniques</summary>
             <p>Source : NASA FIRMS · capteurs VIIRS.</p>
             <p>Le halo rouge et jaune fusionne visuellement les signaux proches selon leur fraîcheur et leur puissance radiative.</p>
-            <p>Synchronisation à {new Date(state.fetchedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}{state.partial ? " · résultat partiel" : ""}.</p>
+            <p>{satelliteUpdateLabel}{state.partial ? " · résultat partiel" : ""}.</p>
             {deduplicatedIncidents.length < state.incidents.length && (
               <p>{state.incidents.length - deduplicatedIncidents.length} doublon{state.incidents.length - deduplicatedIncidents.length > 1 ? "s" : ""} fusionné{state.incidents.length - deduplicatedIncidents.length > 1 ? "s" : ""}.</p>
             )}
@@ -1891,7 +2022,9 @@ export function MapExperience() {
           </details>
         )}
         </div>
-      </details>
+        </div>
+        </div>
+      </div>
     </section>
   );
 }
