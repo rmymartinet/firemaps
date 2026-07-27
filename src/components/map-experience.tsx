@@ -624,9 +624,30 @@ export function MapExperience() {
       setIsRefreshing(true);
       try {
         const requestedDays = Math.min(8, mapPreferences.timelineRangeDays + 1);
-        const response = await fetch(`/api/incidents/firms?days=${requestedDays}`, { cache: "no-store", signal: controller.signal });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.message || "La source satellite est indisponible.");
+        let payload: { incidents: Incident[]; fetchedAt: string; failedSources: string[]; message?: string } | null = null;
+        let lastError: Error | null = null;
+        for (let attempt = 0; attempt < 3 && !controller.signal.aborted; attempt += 1) {
+          if (attempt > 0) {
+            await new Promise<void>((resolve, reject) => {
+              const timeout = window.setTimeout(resolve, attempt * 450);
+              controller.signal.addEventListener("abort", () => {
+                window.clearTimeout(timeout);
+                reject(new DOMException("Aborted", "AbortError"));
+              }, { once: true });
+            });
+          }
+          try {
+            const response = await fetch(`/api/incidents/firms?days=${requestedDays}`, { cache: "no-store", signal: controller.signal });
+            const candidate = await response.json();
+            if (!response.ok) throw new Error(candidate.message || "La source satellite est indisponible.");
+            payload = candidate;
+            break;
+          } catch (error) {
+            if (controller.signal.aborted) throw error;
+            lastError = error instanceof Error ? error : new Error("La source satellite est indisponible.");
+          }
+        }
+        if (!payload) throw lastError ?? new Error("La source satellite est indisponible.");
         const refreshedAt = Date.now();
         setState({
           status: "ready",

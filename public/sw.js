@@ -1,4 +1,4 @@
-const CACHE_NAME = "firemaps-shell-v5";
+const CACHE_NAME = "firemaps-shell-v6";
 const ALERT_CONFIG_URL = "/__sentinel_alert_config__";
 const APP_SHELL = ["/logo.png", "/favicon.png"];
 self.addEventListener("install", (event) => {
@@ -21,11 +21,16 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(event.request));
     return;
   }
-  event.respondWith(fetch(event.request).then((response) => {
-    if (
-      response.ok
-      && (url.pathname === "/api/incidents/firms" || url.pathname === "/api/weather/wind")
-    ) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+  event.respondWith(fetch(event.request).then(async (response) => {
+    const isResilientDataSource = url.pathname === "/api/incidents/firms" || url.pathname === "/api/weather/wind";
+    if (response.ok && isResilientDataSource) {
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
+      return response;
+    }
+    if (!response.ok && isResilientDataSource) {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+    }
     return response;
   }).catch(async () => {
     const cached = await caches.match(event.request);
