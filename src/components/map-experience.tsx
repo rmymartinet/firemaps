@@ -62,26 +62,34 @@ type ForestWeatherState =
   | { status: "ready"; departments: ForestWeatherDepartment[]; publishedAt: string; zones: ForestWeatherZones }
   | { status: "error" };
 
-type SketchIconName = "account" | "area" | "distance" | "fire" | "information" | "layers" | "locate" | "map" | "more" | "now" | "pause" | "play" | "satellite" | "settings" | "share" | "terrain" | "theme" | "wind";
+type SketchIconName = "account" | "air" | "area" | "danger" | "distance" | "exposed" | "fire" | "forest" | "history" | "information" | "layers" | "locate" | "map" | "more" | "now" | "official" | "pause" | "play" | "satellite" | "settings" | "share" | "sources" | "terrain" | "theme" | "watch" | "wind";
 
 const sketchIconPaths: Record<SketchIconName, string[]> = {
   account: ["M12 3.2c2.5 0 4.3 1.9 4.2 4.4-.1 2.4-1.9 4.2-4.3 4.1-2.4-.1-4.1-1.9-4.1-4.3.1-2.4 1.9-4.2 4.2-4.2Z", "M4.7 20.2c.5-4.2 3.1-6.5 7.3-6.5 4.1 0 6.8 2.3 7.3 6.5"],
+  air: ["M4 9.5c.5-2.3 2.2-3.7 4.4-3.5C9.5 3.8 13 3.1 15 5.4c2.8-.3 4.8 1.5 4.8 4.1", "M3 12.2h11.5c2.7 0 3.1 3.7.5 4-1.4.2-2.3-.7-2.5-1.7", "M4.2 16.8h5.3M3.2 19.5h9"],
   area: ["M5 6.5 10 3.8 19 7.2 17.8 18.5 7 19.5 4.5 12Z", "M7 9l9-2.2M6 12l11-2.7M6 15l10.5-2.5M8 18l8-2"],
+  danger: ["M12.2 20.4c-3.6 0-6-2.1-5.9-5.3.1-2.3 1.5-3.6 3-5.4.2 1.5.7 2.2 1.4 2.7-.1-3 1.5-5.3 3.3-7 .2 2.5 2.4 3.7 3.2 6.1 1.6 4.3-.9 8.9-5 8.9Z", "M4.2 21h15.6", "M4.7 6.3 3.2 4.8M19.3 6.3l1.5-1.5M12 3V1.5"],
   distance: ["M4 17.5 9 8.5 19.5 5", "M4 17.5c-.8-1.2-.4-2.8.9-3.3 1.4-.5 2.8.5 2.8 2s-1.2 2.5-2.6 2.5", "M19.5 5c1.3.2 2.1 1.5 1.7 2.8-.5 1.4-2.1 2-3.3 1.2-1.2-.8-1.3-2.5-.3-3.5"],
+  exposed: ["M3.5 11.2 8 7.4l4.5 3.8v8H3.5Z", "M11.5 9.3 15.5 6l5 4.2v9h-8", "M6.2 19.2v-4.5h3v4.5M15.2 19.2v-4.1h2.8v4.1"],
   fire: ["M12.2 21c-4.2 0-7.1-2.6-7-6.4.1-2.8 1.7-4.4 3.6-6.6.3 2 .9 2.9 1.7 3.5-.2-3.8 1.8-6.5 4-8.5.2 3.1 2.8 4.5 3.8 7.4 1.9 5.2-1 10.6-6.1 10.6Z", "M12.1 19c-1.8 0-3.2-1.2-3.1-3 .1-1.4.9-2.3 2-3.4.1 1 .5 1.6 1 2 .1-1.8.9-3.1 2-4.1.2 1.6 1.4 2.4 1.6 3.9.4 2.5-1 4.6-3.5 4.6Z"],
+  forest: ["M12 3.2 6.2 11h3L5 16.5h5.2v4.2h3.6v-4.2H19L14.8 11h3Z", "M12 7.2v9.3M8.5 12.8h7"],
+  history: ["M5.1 7.2H2.8V4.9", "M4.2 6.2A8.6 8.6 0 1 1 3.7 16", "M12 7v5.2l3.6 2.1"],
   information: ["M12 10.3v7.2", "M11.8 6.3h.2", "M12 2.8c5.1 0 9.1 4.1 9 9.2-.1 5.2-4.1 9.1-9.2 9-5.2-.1-9-4.2-8.8-9.3.1-5 4-8.9 9-8.9Z"],
   layers: ["M4 7.5 12 3l8 4.5-8 4.3Z", "M5 11.3 12 15l7-3.7", "M5 15.2 12 19l7-3.8"],
   locate: ["M12 3v4M12 17v4M3 12h4M17 12h4", "M12 7.2c2.8 0 5 2.2 5 4.9-.1 2.8-2.3 4.9-5.1 4.8-2.7-.1-4.8-2.3-4.7-5 .1-2.7 2.2-4.7 4.8-4.7Z", "M12 10.4c1 0 1.8.8 1.8 1.8S13 14 12 14s-1.8-.8-1.8-1.8.8-1.8 1.8-1.8Z"],
   map: ["M3.5 5.5 9 3.7l6 2 5.5-1.8v14.6L15 20.3l-6-2-5.5 1.8Z", "M9 3.7v14.6M15 5.7v14.6", "M5.5 9.2 8 8.4M16.8 9.2l2-.7M10.8 12.2l2.6.9"],
   more: ["M5 12h.2M11.9 12h.2M18.8 12h.2"],
   now: ["M5.5 5.2 16.8 12 5.5 18.8Z", "M19 6v12"],
+  official: ["M4 11.2 14.5 6v12L4 13.8Z", "M14.5 9.2h3.2c1.4 0 2.3 1.1 2.3 2.6s-.9 2.7-2.3 2.7h-3.2", "M6.3 14.8 8 20h3l-1.4-6.4"],
   pause: ["M8.2 5.2v13.5M15.8 5v13.7"],
   play: ["M6.8 4.8 18.4 12 6.8 19.2Z"],
   satellite: ["M7.2 8.1 15.9 16.8M5.4 10l8.7 8.7", "M13.8 5.3 18.7 10.2 15.9 13l-4.9-4.9Z", "M4.1 16.8l3.1-3.1 3.1 3.1-3.1 3.1Z", "M16.8 4.1c1.6.5 2.7 1.6 3.2 3.2M17.8 1.8c2.3.7 3.8 2.2 4.4 4.5"],
   settings: ["M3.2 6.4h5.1M12.4 6.4h8.4", "M3.2 12h10.1M17.4 12h3.4", "M3.2 17.7h3.2M10.5 17.7h10.3", "M10.3 4.3c1.2 0 2.1.9 2.1 2.1s-.9 2.1-2.1 2.1-2.1-.9-2.1-2.1.9-2.1 2.1-2.1Z", "M15.4 9.9c1.2 0 2.1.9 2.1 2.1s-.9 2.1-2.1 2.1-2.1-.9-2.1-2.1.9-2.1 2.1-2.1Z", "M8.5 15.6c1.2 0 2.1.9 2.1 2.1s-.9 2.1-2.1 2.1-2.1-.9-2.1-2.1.9-2.1 2.1-2.1Z"],
   share: ["M12 14.8V3.5M12 3.5 8.3 7.2M12 3.5l3.7 3.7", "M8 9H6.5C5 9 4 10.1 4 11.6v5.9C4 19 5 20 6.5 20h11c1.5 0 2.5-1 2.5-2.5v-5.9C20 10.1 19 9 17.5 9H16"],
+  sources: ["M5 5.5c0-1.3 3.1-2.4 7-2.4s7 1.1 7 2.4-3.1 2.4-7 2.4-7-1.1-7-2.4Z", "M5 5.5v5c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-5", "M5 10.5v5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-5"],
   terrain: ["M2.8 18.8 8.2 10l3.2 4 3.3-7 6.5 11.8Z", "M5.5 18.8 9 14l2.2 2.7M13.6 9.3l1.2 2 1.4-1.1 2.4 4.4"],
   theme: ["M16.7 17.8A8.2 8.2 0 0 1 8.2 4.3 8.7 8.7 0 1 0 19.7 15a8.1 8.1 0 0 1-3 2.8Z"],
+  watch: ["M12 21s6.2-6.4 6.2-11.2A6.2 6.2 0 0 0 5.8 9.8C5.8 14.6 12 21 12 21Z", "M12 6.7l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3Z"],
   wind: ["M3 8.2h10.7c2.8 0 3.2-4 .4-4.2-1.5-.1-2.4.8-2.6 1.8", "M3 12h15.3c3.2 0 3.4 4.5.2 4.7-1.7.1-2.6-.9-2.7-2", "M3 15.8h7.5"],
 };
 
@@ -938,7 +946,7 @@ export function MapExperience() {
     mapPreferences.highContrast ? "map-high-contrast" : "",
   ].filter(Boolean).join(" ");
   const timelineControlClass = "flex h-10 w-10 min-w-10 flex-[0_0_40px] rotate-[-.8deg] cursor-pointer items-center justify-center rounded-[51%_49%_47%_53%] border-[1.7px] border-[#172322] bg-white/95 p-0 text-[1.05rem] font-black text-[#263532] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fire max-[520px]:h-9 max-[520px]:w-9 max-[520px]:min-w-9 max-[520px]:basis-9";
-  const mobileSecondaryButtonClass = "relative flex h-11 w-full transform-none items-center justify-start gap-2.5 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] bg-transparent px-3 text-left text-[.78rem] leading-tight font-extrabold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.1)] [&_svg]:shrink-0 [&>span]:min-w-0 [&>span]:whitespace-nowrap";
+  const mobileSecondaryButtonClass = "relative flex h-11 w-full transform-none items-center justify-start gap-2.5 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] bg-transparent px-3 text-left text-[.78rem] leading-tight font-extrabold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.1)] [&_.hand-drawn-tool-icon]:text-[#172322] [&_svg]:shrink-0 [&>span]:min-w-0 [&>span]:whitespace-nowrap";
   const mobileSecondaryActiveClass = "border-[#d9482f] bg-[repeating-linear-gradient(35deg,rgba(217,72,47,.04)_0_5px,rgba(217,72,47,.22)_5px_6px,transparent_6px_10px)] text-[#9c2f21]";
 
   return (
@@ -1722,12 +1730,12 @@ export function MapExperience() {
               <span className="ml-auto">›</span>
             </button>
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("watch")} type="button">
-              <span aria-hidden>☆</span><span>Surveiller un lieu</span>
+              <SketchIcon name="watch" /><span>Surveiller un lieu</span>
               {activeWatchCount > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-[48%_52%_45%_55%] border-2 border-white bg-[#d9482f] text-[.62rem] font-black text-white shadow-[1px_1px_0_rgba(23,35,34,.35)]">{activeWatchCount}</span>}
               <span className="ml-auto">›</span>
             </button>
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("sources")} type="button">
-              <span aria-hidden>ⓘ</span><span>Sources des données</span>
+              <SketchIcon name="sources" /><span>Sources des données</span>
               <span className="ml-auto">›</span>
             </button>
             <div className="mt-1 flex items-center justify-center gap-3 border-t border-dashed border-[#172322]/40 pt-2">
@@ -1746,11 +1754,11 @@ export function MapExperience() {
         {mobileMoreSection === "layers" && (
           <div className="hidden gap-2 max-[520px]:grid">
             <button className={`${mobileSecondaryButtonClass} ${showWind ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowWind((visible) => !visible)} type="button"><SketchIcon name="wind" /><span>Vent</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showAirQuality ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowAirQuality((visible) => !visible)} type="button"><span aria-hidden>◌</span><span>Fumée et qualité de l’air</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showForestWeather ? mobileSecondaryActiveClass : ""}`} onClick={() => { const visible = !showForestWeather; setShowForestWeather(visible); if (visible && (forestWeatherState.status === "idle" || forestWeatherState.status === "error")) void loadForestWeather(); }} type="button"><span aria-hidden>♨</span><span>Danger feu de forêt</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showNearbyPlaces ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowNearbyPlaces((visible) => { if (!visible) void loadNearbyPlaces(); return !visible; })} type="button"><span aria-hidden>⌂</span><span>Lieux exposés</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showForest ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowForest((visible) => !visible)} type="button"><span aria-hidden>♧</span><span>Végétation IGN</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showHistory ? mobileSecondaryActiveClass : ""}`} onClick={() => { setShowHistory((visible) => !visible); setHistoryPlaying(false); }} type="button"><span aria-hidden>◎</span><span>Historique BDIFF</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showAirQuality ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowAirQuality((visible) => !visible)} type="button"><SketchIcon name="air" /><span>Fumée et qualité de l’air</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showForestWeather ? mobileSecondaryActiveClass : ""}`} onClick={() => { const visible = !showForestWeather; setShowForestWeather(visible); if (visible && (forestWeatherState.status === "idle" || forestWeatherState.status === "error")) void loadForestWeather(); }} type="button"><SketchIcon name="danger" /><span>Danger feu de forêt</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showNearbyPlaces ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowNearbyPlaces((visible) => { if (!visible) void loadNearbyPlaces(); return !visible; })} type="button"><SketchIcon name="exposed" /><span>Lieux exposés</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showForest ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowForest((visible) => !visible)} type="button"><SketchIcon name="forest" /><span>Végétation IGN</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showHistory ? mobileSecondaryActiveClass : ""}`} onClick={() => { setShowHistory((visible) => !visible); setHistoryPlaying(false); }} type="button"><SketchIcon name="history" /><span>Historique BDIFF</span></button>
           </div>
         )}
         {mobileMoreSection === "watch" && (
@@ -1759,7 +1767,7 @@ export function MapExperience() {
             {selectedLocation ? (
               <>
                 <strong>{selectedLocation.label}</strong>
-                <button className={mobileSecondaryButtonClass} onClick={() => { saveSelectedLocation(); setMoreToolsOpen(false); }} type="button"><span aria-hidden>☆</span><span>Surveiller ce lieu</span></button>
+                <button className={mobileSecondaryButtonClass} onClick={() => { saveSelectedLocation(); setMoreToolsOpen(false); }} type="button"><SketchIcon name="watch" /><span>Surveiller ce lieu</span></button>
               </>
             ) : <p className="m-0 rounded-lg border border-dashed border-[#263532] p-2">Aucun lieu sélectionné.</p>}
           </div>
@@ -1786,14 +1794,14 @@ export function MapExperience() {
           onClick={() => setShowAirQuality((visible) => !visible)}
           type="button"
         >
-          ◌
+          <SketchIcon name="air" />
         </button>
         <details className="watch-tool official-tool max-[520px]:!hidden">
           <summary
             className={`sketch-tool-button ${officialNotices.length ? "active" : ""}`}
             data-tooltip="Consignes officielles"
           >
-            ♢
+            <SketchIcon name="official" />
           </summary>
           <div className="watch-panel official-panel">
             <strong>Consignes officielles</strong>
@@ -1839,7 +1847,7 @@ export function MapExperience() {
           }}
           type="button"
         >
-          ♨
+          <SketchIcon name="danger" />
         </button>
         <button
           aria-label={showNearbyPlaces ? "Masquer les lieux exposés" : "Afficher les lieux exposés"}
@@ -1854,7 +1862,7 @@ export function MapExperience() {
           }}
           type="button"
         >
-          ⌂
+          <SketchIcon name="exposed" />
         </button>
         <button
           aria-label={showForest ? "Masquer la végétation forestière" : "Afficher la végétation forestière"}
@@ -1864,7 +1872,7 @@ export function MapExperience() {
           onClick={() => setShowForest((visible) => !visible)}
           type="button"
         >
-          ♧
+          <SketchIcon name="forest" />
         </button>
         <button
           aria-label={showHistory ? "Masquer l’historique des feux" : "Afficher l’historique des feux"}
@@ -1877,11 +1885,11 @@ export function MapExperience() {
           }}
           type="button"
         >
-          ◎
+          <SketchIcon name="history" />
         </button>
         <details className="watch-tool max-[520px]:!hidden">
           <summary className="sketch-tool-button" data-tooltip="Surveiller un lieu">
-            ☆
+            <SketchIcon name="watch" />
           </summary>
           <div className="watch-panel">
             <strong>Surveiller un lieu</strong>

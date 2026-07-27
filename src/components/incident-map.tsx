@@ -609,8 +609,8 @@ function SelectedLocation({
     >
       <Popup autoPan={false} className="selected-location-popup" closeButton={false} ref={popupRef}>
         <div className="relative">
-          <div className="popup-title relative pr-10">
-            <span className={kind === "pin" ? "min-w-0 whitespace-nowrap max-[520px]:text-[.9rem] max-[520px]:tracking-[-.045em]" : "min-w-0"}>
+          <div className="popup-title pr-14">
+            <span className={kind === "pin" ? "block min-w-0 whitespace-nowrap max-[520px]:text-[.9rem] max-[520px]:tracking-[-.045em]" : "block min-w-0"}>
               {kind === "pin" ? (
                 <>
                   <span className="max-[520px]:hidden">{location.label}</span>
@@ -620,18 +620,18 @@ function SelectedLocation({
                 </>
               ) : location.label}
             </span>
-            <button
-              aria-label="Fermer"
-              className="absolute -top-1 right-0 flex size-7 rotate-[.7deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white font-['Comic_Sans_MS','Bradley_Hand',cursive] text-base leading-none text-[#172322]"
-              onClick={(event) => {
-                event.stopPropagation();
-                closeSelection();
-              }}
-              type="button"
-            >
-              ×
-            </button>
           </div>
+          <button
+            aria-label="Fermer"
+            className="absolute -top-2 -right-2 flex size-7 rotate-[.7deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white font-['Comic_Sans_MS','Bradley_Hand',cursive] text-base leading-none text-[#172322] max-[520px]:-top-1 max-[520px]:-right-1"
+            onClick={(event) => {
+              event.stopPropagation();
+              closeSelection();
+            }}
+            type="button"
+          >
+            ×
+          </button>
           <p>
             {kind === "geolocation"
               ? "Position fournie par cet appareil."
@@ -928,12 +928,12 @@ function measuredAreaSquareKm(points: LatLng[]): number {
   return Math.abs(doubledArea) / 2 / 1_000_000;
 }
 
-function measurementAction(event: { originalEvent: MouseEvent }): "clear" | "finish" | null {
+function measurementAction(event: { originalEvent: MouseEvent }): "accept" | "clear" | "finish" | null {
   const actionElement = event.originalEvent.composedPath().find(
     (item): item is HTMLElement => item instanceof HTMLElement && Boolean(item.dataset.measureAction),
   );
   const action = actionElement?.dataset.measureAction;
-  return action === "clear" || action === "finish" ? action : null;
+  return action === "accept" || action === "clear" || action === "finish" ? action : null;
 }
 
 function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onFinish: () => void; unit: "km" | "miles" }) {
@@ -941,6 +941,7 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
   const [points, setPoints] = useState<LatLng[]>([]);
   const [cursorPoint, setCursorPoint] = useState<LatLng | null>(null);
   const [finished, setFinished] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const finishDistance = () => {
     if (points.length < 2) return;
     setCursorPoint(null);
@@ -978,6 +979,7 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
       setPoints((current) => finished ? [event.latlng] : [...current, event.latlng]);
       setCursorPoint(event.latlng);
       setFinished(false);
+      setAccepted(false);
     },
     dblclick: (event) => {
       if (!active) return;
@@ -1033,6 +1035,10 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
             event.originalEvent.preventDefault();
             event.originalEvent.stopPropagation();
             const action = measurementAction(event);
+            if (action === "accept") {
+              setAccepted(true);
+              return;
+            }
             if (action === "finish") {
               finishDistance();
               return;
@@ -1041,11 +1047,12 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
             setPoints([]);
             setCursorPoint(null);
             setFinished(false);
+            setAccepted(false);
             onFinish();
           } }}
           icon={divIcon({
             className: `measurement-label-marker measurement-label-${distanceLabelFacesLeft ? "left" : "right"}`,
-            html: `<span><em>${distanceLabel}</em>${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider la mesure">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer la mesure">×</b></span>`,
+            html: `<span><em>${distanceLabel}</em>${!finished ? '<b class="measurement-confirm measurement-drawing-action" data-measure-action="finish" title="Terminer la mesure">✓</b><b class="measurement-drawing-action" data-measure-action="clear" title="Annuler la mesure">×</b>' : !accepted ? '<b class="measurement-confirm measurement-finished-action" data-measure-action="accept" title="Conserver la mesure">✓</b><b class="measurement-finished-action" data-measure-action="clear" title="Supprimer la mesure">×</b>' : ""}</span>`,
             iconAnchor: [0, 0],
             iconSize: [0, 0],
           })}
@@ -1076,6 +1083,7 @@ function AreaMeasureLayer({
   const [points, setPoints] = useState<LatLng[]>([]);
   const [cursorPoint, setCursorPoint] = useState<LatLng | null>(null);
   const [finished, setFinished] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const minimumPoints = closeShape ? 3 : 2;
 
   useEffect(() => {
@@ -1123,6 +1131,7 @@ function AreaMeasureLayer({
       setPoints((current) => finished ? [event.latlng] : [...current, event.latlng]);
       setCursorPoint(event.latlng);
       setFinished(false);
+      setAccepted(false);
     },
     dblclick: (event) => {
       if (!active) return;
@@ -1206,6 +1215,10 @@ function AreaMeasureLayer({
             event.originalEvent.preventDefault();
             event.originalEvent.stopPropagation();
             const action = measurementAction(event);
+            if (action === "accept") {
+              setAccepted(true);
+              return;
+            }
             if (action === "finish") {
               finishArea();
               return;
@@ -1214,11 +1227,12 @@ function AreaMeasureLayer({
             setPoints([]);
             setCursorPoint(null);
             setFinished(false);
+            setAccepted(false);
             onCancel();
           } }}
           icon={divIcon({
             className: `measurement-label-marker area-measurement-label-marker measurement-label-${areaLabelFacesLeft ? "left" : "right"}`,
-            html: `<span><em>${closeShape ? areaLabel : "Limite"}</em>${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider le tracé">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer le tracé">×</b></span>`,
+            html: `<span><em>${closeShape ? areaLabel : "Limite"}</em>${!finished ? '<b class="measurement-confirm measurement-drawing-action" data-measure-action="finish" title="Terminer le tracé">✓</b><b class="measurement-drawing-action" data-measure-action="clear" title="Annuler le tracé">×</b>' : !accepted ? '<b class="measurement-confirm measurement-finished-action" data-measure-action="accept" title="Conserver le tracé">✓</b><b class="measurement-finished-action" data-measure-action="clear" title="Supprimer le tracé">×</b>' : ""}</span>`,
             iconAnchor: [0, 0],
             iconSize: [0, 0],
           })}
