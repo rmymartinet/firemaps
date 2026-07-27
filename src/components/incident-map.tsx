@@ -1043,7 +1043,7 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
           } }}
           icon={divIcon({
             className: "measurement-label-marker",
-            html: `<span>${distanceLabel}${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider la mesure">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer la mesure">×</b></span>`,
+            html: `<span><em>${distanceLabel}</em>${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider la mesure">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer la mesure">×</b></span>`,
             iconAnchor: [0, 38],
             iconSize: [0, 0],
           })}
@@ -1214,8 +1214,8 @@ function AreaMeasureLayer({
             onCancel();
           } }}
           icon={divIcon({
-            className: "measurement-label-marker",
-            html: `<span>${closeShape ? areaLabel : "Limite"}${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider le tracé">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer le tracé">×</b></span>`,
+            className: "measurement-label-marker area-measurement-label-marker",
+            html: `<span><em>${closeShape ? areaLabel : "Limite"}</em>${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider le tracé">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer le tracé">×</b></span>`,
             iconAnchor: [0, 16],
             iconSize: [0, 0],
           })}

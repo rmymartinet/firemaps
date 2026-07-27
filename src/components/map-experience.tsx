@@ -215,13 +215,13 @@ export function MapExperience() {
   useEffect(() => {
     try {
       const storedTheme = window.localStorage.getItem(MAP_THEME_KEY);
-      setDarkMap(storedTheme ? storedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
+      setDarkMap(storedTheme === "dark");
       const storedPreferences = JSON.parse(window.localStorage.getItem(MAP_PREFERENCES_KEY) ?? "{}") as Partial<MapPreferences>;
       const preferences = { ...defaultMapPreferences, ...storedPreferences };
       setMapPreferences(preferences);
       setAlertRadiusKm(preferences.alertRadiusKm);
     } catch {
-      setDarkMap(window.matchMedia("(prefers-color-scheme: dark)").matches);
+      setDarkMap(false);
       setMapPreferences(defaultMapPreferences);
     } finally {
       setPreferencesReady(true);
@@ -908,7 +908,6 @@ export function MapExperience() {
     mapPreferences.reduceMotion ? "map-reduce-motion" : "",
     mapPreferences.textSize === "large" ? "map-text-large" : "",
     mapPreferences.highContrast ? "map-high-contrast" : "",
-    mapPreferences.largeControls ? "map-controls-large" : "",
   ].filter(Boolean).join(" ");
   const timelineControlClass = "flex h-10 w-10 min-w-10 flex-[0_0_40px] rotate-[-.8deg] cursor-pointer items-center justify-center rounded-[51%_49%_47%_53%] border-[1.7px] border-[#172322] bg-white/95 p-0 text-[1.05rem] font-black text-[#263532] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fire max-[520px]:h-9 max-[520px]:w-9 max-[520px]:min-w-9 max-[520px]:basis-9";
   const mobileSecondaryButtonClass = "relative flex h-11 w-full transform-none items-center justify-start gap-2.5 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] bg-transparent px-3 text-left text-[.78rem] leading-tight font-extrabold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.1)] [&_svg]:shrink-0 [&>span]:min-w-0 [&>span]:whitespace-nowrap";

@@ -12,7 +12,6 @@ export type MapPreferences = {
   haloIntensity: "low" | "normal" | "high";
   highContrast: boolean;
   hourFormat: "12" | "24";
-  largeControls: boolean;
   markerSize: "small" | "normal" | "large";
   playbackSpeed: "slow" | "normal" | "fast";
   timelineRangeDays: 1 | 3 | 7;
@@ -32,7 +31,6 @@ export const defaultMapPreferences: MapPreferences = {
   haloIntensity: "normal",
   highContrast: false,
   hourFormat: "24",
-  largeControls: false,
   markerSize: "normal",
   playbackSpeed: "normal",
   timelineRangeDays: 1,
@@ -228,7 +226,7 @@ export function MapSettingsPanel({
           />
           <small className="leading-normal text-muted">Permet de revenir aux jours précédents directement depuis la barre sur la carte.</small>
         </Setting>
-        <Setting label="Vitesse du mode lecture ▶">
+        <Setting label="Vitesse du mode lecture">
           <Choice onChange={(value) => update("playbackSpeed", value)} options={[{ label: "Lente", value: "slow" }, { label: "Normale", value: "normal" }, { label: "Rapide", value: "fast" }]} value={preferences.playbackSpeed} />
           <small className="leading-normal text-muted">Règle le défilement automatique après avoir appuyé sur Lecture. Le glissement manuel ne change pas.</small>
         </Setting>
@@ -257,7 +255,6 @@ export function MapSettingsPanel({
         </Setting>
         <Toggle checked={preferences.highContrast} label="Contraste renforcé" onChange={(value) => update("highContrast", value)} />
         <Toggle checked={preferences.reduceMotion} label="Réduire les animations" onChange={(value) => update("reduceMotion", value)} />
-        <Toggle checked={preferences.largeControls} label="Grands boutons sur mobile" onChange={(value) => update("largeControls", value)} />
       </section>
 
       <section className={section}>

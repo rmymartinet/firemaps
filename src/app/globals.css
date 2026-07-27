@@ -114,7 +114,10 @@ body:has(.map-page) .topbar { display: none; }
 .map-primary-tools .sketch-tool-button[data-tooltip]:focus-visible::after,
 .map-top-tools .sketch-tool-button[data-tooltip]:hover::after,
 .map-top-tools .sketch-tool-button[data-tooltip]:focus-visible::after { background: rgba(255,252,239,.96); border-color: #172322; color: #172322; text-shadow: none; }
-.map-font-hand, .map-font-hand button, .map-font-hand input, .map-font-hand textarea, .map-font-hand select { font-family: "Comic Sans MS", "Bradley Hand", "Segoe Print", cursive; }
+.map-font-hand, .map-font-hand button, .map-font-hand input, .map-font-hand textarea, .map-font-hand select {
+  font-family: var(--font-gochi-hand), "Comic Sans MS", cursive;
+  font-synthesis: none;
+}
 .map-markers-small .fire-detection-target, .map-markers-small .fire-cluster-disc { transform: scale(.78); }
 .map-markers-large .fire-detection-target, .map-markers-large .fire-cluster-disc { transform: scale(1.22); }
 .map-halos-low .thermal-footprint { opacity: .48; }
@@ -349,8 +352,10 @@ body:has(.map-page) .topbar { display: none; }
 .measurement-label-marker { cursor: pointer; height: 0 !important; overflow: visible !important; pointer-events: auto !important; width: 0 !important; }
 .measurement-label-marker span { align-items: center; background: rgba(255,255,255,.96); border: 1.7px solid #172322; border-radius: 9px 6px 11px 7px; box-shadow: 2px 2px 0 rgba(23,35,34,.25); color: #172322; display: inline-flex; font-size: .78rem; font-weight: 900; gap: 10px; justify-content: center; left: 0; min-height: 34px; padding: 6px 7px 6px 11px; position: absolute; text-align: center; top: 0; transform: translateX(-50%) rotate(-.6deg); white-space: nowrap; width: max-content; }
 .measurement-label-marker span::after { border: 1px solid rgba(23,35,34,.36); border-radius: 7px 10px 6px 11px; content: ""; inset: 2px -3px -2px 2px; pointer-events: none; position: absolute; }
+.measurement-label-marker em { font-style: normal; min-width: 0; white-space: nowrap; }
 .measurement-label-marker b { align-items: center; background: transparent; border: 1.5px solid #d9482f; border-radius: 48% 52% 45% 55%; color: #b72d1f; cursor: pointer; display: inline-flex; flex: 0 0 26px; font-family: "Comic Sans MS", "Bradley Hand", cursive; font-size: 1rem; height: 26px; justify-content: center; line-height: 1; pointer-events: auto; touch-action: manipulation; transform: rotate(.8deg); user-select: none; }
 .measurement-label-marker b.measurement-confirm { border-color: #177447; color: #17643d; cursor: pointer; transform: rotate(-.8deg); }
+.area-measurement-label-marker span { transform: translate(-50%, calc(-100% - 10px)) rotate(-.6deg); }
 .movement-arrow-marker span { color: #fff; display: block; filter: drop-shadow(0 0 2px #65150d) drop-shadow(0 1px 1px #65150d); font-size: 25px; font-weight: 900; height: 24px; line-height: 24px; text-align: center; transform-origin: center; width: 24px; }
 .wind-arrow-direction { align-items: center; display: flex; height: 26px; justify-content: center; transform-origin: center; width: 26px; }
 .wind-arrow-flow { align-items: center; animation: wind-arrow-flow 1.4s linear infinite; display: flex; height: 26px; justify-content: center; width: 26px; }
@@ -393,6 +398,22 @@ body:has(.map-page) .topbar { display: none; }
   .map .leaflet-control-attribution { right: 12px; }
 }
 @media (max-width: 520px) {
+  .measurement-label-marker span {
+    box-sizing: border-box;
+    gap: 6px;
+    max-width: calc(100vw - 32px);
+    min-height: 40px;
+    padding: 5px 6px 5px 9px;
+  }
+  .measurement-label-marker em {
+    font-size: .8rem;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .measurement-label-marker b {
+    flex-basis: 28px;
+    height: 28px;
+  }
   .sketch-modal-panel { border-radius: 24px 24px 0 0; border-bottom: 0; transform: none; }
   .air-quality-scale { gap: 4px 7px; }
   .map-side-tools .sketch-tool-button:hover,
@@ -428,7 +449,6 @@ body:has(.map-page) .topbar { display: none; }
     transform: rotate(-1.2deg) translate(.55px,.65px);
   }
   .sketch-tool-button { font-size: 1.2rem; height: 42px; width: 42px; }
-  .map-controls-large .sketch-tool-button { height: 50px; width: 50px; }
   .watch-panel { bottom: 12px; left: 12px; max-height: calc(100dvh - 92px); position: fixed; right: 12px; top: auto; width: auto; }
   .timeline-track { height: 17px; }
   .timeline-track::before { top: 4px; }
