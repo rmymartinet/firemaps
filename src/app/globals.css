@@ -152,6 +152,15 @@ a { color: inherit; }
 .sketch-tool-button { align-items: center; background-color: rgba(255,252,239,.74); background-image: repeating-linear-gradient(34deg, transparent 0 5px, rgba(23,35,34,.13) 5px 6px, transparent 6px 9px); border: 2px solid #172322; border-radius: 48% 52% 46% 54%; box-shadow: 0 0 0 1px rgba(255,252,239,.88); color: #172322; cursor: pointer; display: flex; filter: drop-shadow(0 1px 1px rgba(23,35,34,.28)); font-size: 1.35rem; font-weight: 900; height: 46px; justify-content: center; position: relative; text-decoration: none; text-shadow: 0 1px 0 rgba(255,252,239,.95); transform: rotate(-1.2deg); width: 46px; }
 .sketch-tool-button:nth-child(even) { border-radius: 53% 47% 51% 49%; transform: rotate(1.1deg); }
 .sketch-tool-button:nth-child(3n) { border-radius: 45% 55% 52% 48%; transform: rotate(-.4deg); }
+.map-secondary-tools > .sketch-tool-button,
+.map-secondary-tools > .watch-tool > summary {
+  border-radius: 10px 7px 12px 8px !important;
+  transform: none !important;
+}
+.map-secondary-tools > .sketch-tool-button:nth-of-type(even),
+.map-secondary-tools > .watch-tool:nth-of-type(even) > summary {
+  border-radius: 8px 12px 7px 11px !important;
+}
 .sketch-tool-button::after { content: none; }
 .sketch-tool-button:hover, .sketch-tool-button:focus-visible { background-color: rgba(255,252,239,.9); border-color: #000; color: #000; outline: 2px solid rgba(255,252,239,.9); outline-offset: 3px; transform: rotate(0) scale(1.05); }
 .sketch-tool-button.active { background-color: rgba(255,238,231,.8); background-image: repeating-linear-gradient(34deg, transparent 0 5px, rgba(217,72,47,.25) 5px 6.5px, transparent 6.5px 9px); border-color: var(--fire); color: var(--fire); }
