@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
+import { PasswordResetRequest } from "@/components/password-reset-request";
 
-type AuthMode = "sign-in" | "sign-up";
+type AuthMode = "forgot-password" | "sign-in" | "sign-up";
 
 export function AuthAccountPanel() {
   const { data: session, isPending } = authClient.useSession();
@@ -48,6 +49,10 @@ export function AuthAccountPanel() {
     );
   }
 
+  if (mode === "forgot-password") {
+    return <PasswordResetRequest onBack={() => setMode("sign-in")} />;
+  }
+
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-2 gap-1 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] p-1">
@@ -58,6 +63,11 @@ export function AuthAccountPanel() {
         {mode === "sign-up" && <input className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" name="name" placeholder="Prénom ou pseudonyme" required />}
         <input autoComplete="email" className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" name="email" placeholder="Adresse e-mail" required type="email" />
         <input autoComplete={mode === "sign-up" ? "new-password" : "current-password"} className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" minLength={10} name="password" placeholder="Mot de passe · 10 caractères minimum" required type="password" />
+        {mode === "sign-in" && (
+          <button className="justify-self-end border-0 bg-transparent p-0 text-xs font-extrabold text-[#195e70] underline decoration-dashed underline-offset-4" onClick={() => setMode("forgot-password")} type="button">
+            Mot de passe oublié ?
+          </button>
+        )}
         {error && <p className="m-0 text-xs font-bold text-[#9f291e]">{error}</p>}
         <button className="min-h-11 rounded-[9px_6px_11px_7px] border-2 border-[#172322] bg-[#172322] px-3 text-sm font-black text-white" disabled={submitting} type="submit">
           {submitting ? "Un instant…" : mode === "sign-up" ? "Créer mon compte" : "Se connecter"}
