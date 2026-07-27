@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sentinel
 
-## Getting Started
+PWA mobile-first d’information citoyenne pendant les incendies. Sentinel aide à comprendre les informations connues et leurs limites ; elle ne remplace ni les secours ni les alertes officielles.
 
-First, run the development server:
+## Démarrer
+
+Prérequis : Node.js 20.9+ et npm.
 
 ```bash
+cp .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Créer gratuitement une clé NASA FIRMS sur `https://firms.modaps.eosdis.nasa.gov/api/map_key/`, puis renseigner `NASA_FIRMS_MAP_KEY` dans `.env.local`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+La découverte semi-automatique de liens vidéo publics est facultative. Créer une clé Brave Search sur `https://api.search.brave.com/`, puis renseigner `BRAVE_SEARCH_API_KEY` côté serveur.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Ouvrir `http://localhost:3000`. Les marqueurs orange représentent des détections thermiques satellite des dernières 24 heures, jamais des incendies confirmés.
 
-## Learn More
+## Vérifier
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Repères
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/app/` : routes App Router et manifeste PWA
+- `src/components/` : shell, carte et fonctions clientes
+- `src/domain/` : types et règles métier testables
+- `src/integrations/` : adaptateurs des fournisseurs externes
+- `docs/current-state.md` : source de vérité sur l’état du projet
+- `docs/adr/` : décisions structurantes
+- `.codex/skills/` : procédures persistantes pour agents
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Consulter [docs/README.md](docs/README.md), puis [docs/current-state.md](docs/current-state.md) avant toute contribution. Toute nouvelle source de données doit être documentée avant connexion.
