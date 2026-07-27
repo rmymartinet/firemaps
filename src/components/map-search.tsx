@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { GeocodingSuggestion } from "@/integrations/geoplateforme";
+import { useLanguage } from "@/i18n/language-context";
 
 function HandSearchIcon({ pin = false }: { pin?: boolean }) {
   const paths = pin
@@ -27,6 +28,7 @@ export function MapSearch({
   onMobileOpenChange?: (open: boolean) => void;
   onSelect: (suggestion: GeocodingSuggestion) => void;
 }) {
+  const { tr } = useLanguage();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<GeocodingSuggestion[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -114,7 +116,7 @@ export function MapSearch({
         mobileOpen ? "" : "max-[520px]:!size-[42px] max-[520px]:!min-h-[42px] max-[520px]:!rotate-[-.8deg] max-[520px]:!rounded-[45%_55%_43%_57%/54%_46%_56%_44%] max-[520px]:!border-[1.8px] max-[520px]:!border-[#172322] max-[520px]:!p-0 max-[520px]:!shadow-[1px_1px_0_rgba(23,35,34,.45)] max-[520px]:after:hidden"
       }`}>
         <button
-          aria-label={mobileOpen ? "Fermer la recherche" : "Rechercher un lieu"}
+          aria-label={mobileOpen ? tr("Fermer la recherche", "Close search") : tr("Rechercher un lieu", "Search for a place")}
           className={`grid size-8 shrink-0 cursor-pointer place-items-center border-0 bg-transparent p-0 text-inherit ${mobileOpen ? "" : "max-[520px]:!size-[42px]"}`}
           onClick={() => {
             if (mobileOpen) {
@@ -140,7 +142,7 @@ export function MapSearch({
           aria-autocomplete="list"
           aria-controls="address-suggestions"
           aria-expanded={suggestions.length > 0}
-          aria-label="Rechercher une adresse ou un lieu"
+          aria-label={tr("Rechercher une adresse ou un lieu", "Search for an address or place")}
           autoComplete="off"
           onChange={(event) => updateQuery(event.target.value)}
           onFocus={() => setMobileOpen(true)}
@@ -151,12 +153,12 @@ export function MapSearch({
               event.currentTarget.blur();
             }
           }}
-          placeholder="Rechercher une adresse ou un lieu"
+          placeholder={tr("Rechercher une adresse ou un lieu", "Search for an address or place")}
           role="combobox"
           ref={inputRef}
           value={query}
         />
-        {status === "loading" && <span className={`whitespace-nowrap text-[.72rem] text-muted ${mobileOpen ? "" : "max-[520px]:hidden"}`}>Recherche…</span>}
+        {status === "loading" && <span className={`whitespace-nowrap text-[.72rem] text-muted ${mobileOpen ? "" : "max-[520px]:hidden"}`}>{tr("Recherche…", "Searching…")}</span>}
       </div>
       {suggestions.length > 0 && mobileOpen && (
         <ul className="relative mt-2 max-h-[min(310px,45dvh)] rotate-[.1deg] list-none overflow-y-auto overscroll-contain rounded-[14px_17px_13px_16px] border-2 border-[#172322] bg-[rgba(255,255,255,.97)] p-1.5 text-[#172322] shadow-[3px_4px_0_rgba(23,35,34,.2),0_8px_25px_rgba(0,0,0,.18)] [&>li+li]:border-t [&>li+li]:border-dashed [&>li+li]:border-line" id="address-suggestions" role="listbox">
@@ -170,7 +172,7 @@ export function MapSearch({
           ))}
         </ul>
       )}
-      {status === "error" && mobileOpen && <p className="mx-2.5 my-1.5 rounded-lg bg-[#fff1e8] p-2 text-[.78rem] text-[#692416]">Recherche temporairement indisponible.</p>}
+      {status === "error" && mobileOpen && <p className="mx-2.5 my-1.5 rounded-lg bg-[#fff1e8] p-2 text-[.78rem] text-[#692416]">{tr("Recherche temporairement indisponible.", "Search is temporarily unavailable.")}</p>}
     </div>
   );
 }

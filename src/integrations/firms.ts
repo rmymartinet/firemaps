@@ -15,6 +15,19 @@ export interface FirmsResult {
   failedSources: FirmsSource[];
 }
 
+export interface FirmsArea {
+  east: number;
+  north: number;
+  south: number;
+  west: number;
+}
+
+export function serializeFirmsArea(area: FirmsArea): string {
+  return [area.west, area.south, area.east, area.north]
+    .map((coordinate) => Number(coordinate.toFixed(4)))
+    .join(",");
+}
+
 interface FirmsRow {
   latitude: string;
   longitude: string;
@@ -102,14 +115,14 @@ export function normalizeFirmsRows(rows: FirmsRow[], source: FirmsSource, ingest
   });
 }
 
-export async function fetchFirmsForFrance(mapKey: string, dayRange = 1): Promise<FirmsResult> {
+export async function fetchFirmsForArea(mapKey: string, area: FirmsArea, dayRange = 1): Promise<FirmsResult> {
   const fetchedAt = new Date().toISOString();
-  const area = "-5.5,41,10,51.5";
+  const serializedArea = serializeFirmsArea(area);
   const safeDayRange = Math.min(10, Math.max(1, Math.round(dayRange)));
   const results = await Promise.allSettled(
     FIRMS_SOURCES.map(async (source) => {
-      const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${encodeURIComponent(mapKey)}/${source}/${area}/${safeDayRange}`;
-      const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
+      const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${encodeURIComponent(mapKey)}/${source}/${serializedArea}/${safeDayRange}`;
+      const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
       if (!response.ok) throw new Error(`FIRMS ${source}: HTTP ${response.status}`);
       const csv = await response.text();
       if (csv.trimStart().startsWith("<")) throw new Error(`FIRMS ${source}: réponse inattendue`);

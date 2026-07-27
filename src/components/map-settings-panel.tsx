@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { gsap } from "gsap";
+import { useLanguage } from "@/i18n/language-context";
 
 export type MapPreferences = {
   alertRadiusKm: 5 | 10 | 25 | 50;
@@ -125,6 +126,7 @@ export function MapSettingsPanel({
   preferences: MapPreferences;
 }) {
   const panelRef = useRef<HTMLElement>(null);
+  const { language, setLanguage, tr } = useLanguage();
   const update = <K extends keyof MapPreferences>(key: K, value: MapPreferences[K]) => {
     onChange({ ...preferences, [key]: value });
   };
@@ -179,90 +181,104 @@ export function MapSettingsPanel({
   const section = "grid gap-3 rounded-[13px_10px_15px_11px] border-[1.5px] border-dashed border-[#263532] p-3";
   return (
     <aside
-      aria-label="Réglages de la carte"
+      aria-label={tr("Réglages de la carte", "Map settings")}
       aria-hidden={!open}
       className={`invisible fixed top-[141px] right-[84px] grid max-h-[min(calc(100dvh-159px),760px)] w-[360px] origin-top-right scale-[.82] rotate-[-.06deg] gap-3 overflow-y-auto rounded-[19px_15px_21px_16px] border-2 border-[#172322] bg-white p-3.5 text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_1px_rgba(23,35,34,.38),0_10px_34px_rgba(0,0,0,.22)] max-[720px]:inset-x-0 max-[720px]:top-auto max-[720px]:bottom-0 max-[720px]:max-h-[84dvh] max-[720px]:w-full max-[720px]:origin-bottom max-[720px]:rounded-t-[20px] max-[720px]:rounded-b-none max-[720px]:px-3 max-[720px]:pt-3.5 max-[720px]:pb-[calc(16px+env(safe-area-inset-bottom))] ${open ? "" : "pointer-events-none"}`}
       ref={panelRef}
     >
       <header className="flex items-center justify-between border-b-[1.5px] border-dashed border-[#263532]/55 pb-2">
         <div>
-          <small className="font-black tracking-[.12em] uppercase">Préférences</small>
-          <h2 className="m-0 text-lg font-black">Réglages de la carte</h2>
+          <small className="font-black tracking-[.12em] uppercase">{tr("Préférences", "Preferences")}</small>
+          <h2 className="m-0 text-lg font-black">{tr("Réglages de la carte", "Map settings")}</h2>
         </div>
-        <button aria-label="Fermer les réglages" className="grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-2xl" onClick={onClose} type="button">×</button>
+        <button aria-label={tr("Fermer les réglages", "Close settings")} className="grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-2xl" onClick={onClose} type="button">×</button>
       </header>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">Affichage</strong>
-        <Setting label="Police">
-          <Choice onChange={(value) => update("fontStyle", value)} options={[{ label: "Standard", value: "standard" }, { label: "Crayon", value: "hand" }]} value={preferences.fontStyle} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Langue", "Language")}</strong>
+        <Setting label={tr("Langue de l’application", "Application language")}>
+          <Choice
+            onChange={setLanguage}
+            options={[
+              { label: "Français", value: "fr" },
+              { label: "English", value: "en" },
+            ]}
+            value={language}
+          />
         </Setting>
-        <Setting label="Taille des points de feu">
-          <Choice onChange={(value) => update("markerSize", value)} options={[{ label: "Petite", value: "small" }, { label: "Normale", value: "normal" }, { label: "Grande", value: "large" }]} value={preferences.markerSize} />
-        </Setting>
-        <Setting label="Intensité des halos">
-          <Choice onChange={(value) => update("haloIntensity", value)} options={[{ label: "Faible", value: "low" }, { label: "Normale", value: "normal" }, { label: "Forte", value: "high" }]} value={preferences.haloIntensity} />
-        </Setting>
-        <Toggle checked={preferences.showTooltips} label="Infobulles au survol" onChange={(value) => update("showTooltips", value)} />
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">Temps</strong>
-        <Setting label="Fuseau horaire">
-          <Choice onChange={(value) => update("timeZone", value)} options={[{ label: "Local", value: "local" }, { label: "UTC", value: "utc" }]} value={preferences.timeZone} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Affichage", "Display")}</strong>
+        <Setting label={tr("Police", "Font")}>
+          <Choice onChange={(value) => update("fontStyle", value)} options={[{ label: "Standard", value: "standard" }, { label: tr("Crayon", "Handwritten"), value: "hand" }]} value={preferences.fontStyle} />
         </Setting>
-        <Setting label="Format de l’heure">
-          <Choice onChange={(value) => update("hourFormat", value)} options={[{ label: "24 heures", value: "24" }, { label: "12 heures", value: "12" }]} value={preferences.hourFormat} />
+        <Setting label={tr("Taille des points de feu", "Fire marker size")}>
+          <Choice onChange={(value) => update("markerSize", value)} options={[{ label: tr("Petite", "Small"), value: "small" }, { label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Grande", "Large"), value: "large" }]} value={preferences.markerSize} />
         </Setting>
-        <Setting label="Période de la chronologie">
+        <Setting label={tr("Intensité des halos", "Halo intensity")}>
+          <Choice onChange={(value) => update("haloIntensity", value)} options={[{ label: tr("Faible", "Low"), value: "low" }, { label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Forte", "High"), value: "high" }]} value={preferences.haloIntensity} />
+        </Setting>
+        <Toggle checked={preferences.showTooltips} label={tr("Infobulles au survol", "Hover tooltips")} onChange={(value) => update("showTooltips", value)} />
+      </section>
+
+      <section className={section}>
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Temps", "Time")}</strong>
+        <Setting label={tr("Fuseau horaire", "Time zone")}>
+          <Choice onChange={(value) => update("timeZone", value)} options={[{ label: tr("Local", "Local"), value: "local" }, { label: "UTC", value: "utc" }]} value={preferences.timeZone} />
+        </Setting>
+        <Setting label={tr("Format de l’heure", "Time format")}>
+          <Choice onChange={(value) => update("hourFormat", value)} options={[{ label: tr("24 heures", "24 hours"), value: "24" }, { label: tr("12 heures", "12 hours"), value: "12" }]} value={preferences.hourFormat} />
+        </Setting>
+        <Setting label={tr("Période de la chronologie", "Timeline range")}>
           <Choice
             onChange={(value) => update("timelineRangeDays", value)}
             options={[
-              { label: "Aujourd’hui", value: 1 },
-              { label: "3 jours", value: 3 },
-              { label: "7 jours", value: 7 },
+              { label: tr("Aujourd’hui", "Today"), value: 1 },
+              { label: tr("3 jours", "3 days"), value: 3 },
+              { label: tr("7 jours", "7 days"), value: 7 },
             ]}
             value={preferences.timelineRangeDays}
           />
-          <small className="leading-normal text-muted">Permet de revenir aux jours précédents directement depuis la barre sur la carte.</small>
+          <small className="leading-normal text-muted">{tr("Permet de revenir aux jours précédents directement depuis la barre sur la carte.", "Lets you browse previous days directly from the map timeline.")}</small>
         </Setting>
-        <Setting label="Vitesse du mode lecture">
-          <Choice onChange={(value) => update("playbackSpeed", value)} options={[{ label: "Lente", value: "slow" }, { label: "Normale", value: "normal" }, { label: "Rapide", value: "fast" }]} value={preferences.playbackSpeed} />
-          <small className="leading-normal text-muted">Règle le défilement automatique après avoir appuyé sur Lecture. Le glissement manuel ne change pas.</small>
+        <Setting label={tr("Vitesse du mode lecture", "Playback speed")}>
+          <Choice onChange={(value) => update("playbackSpeed", value)} options={[{ label: tr("Lente", "Slow"), value: "slow" }, { label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Rapide", "Fast"), value: "fast" }]} value={preferences.playbackSpeed} />
+          <small className="leading-normal text-muted">{tr("Règle le défilement automatique après avoir appuyé sur Lecture. Le glissement manuel ne change pas.", "Controls automatic playback after pressing Play. Manual dragging is unchanged.")}</small>
         </Setting>
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">Unités</strong>
-        <Setting label="Vent">
-          <Choice onChange={(value) => update("windUnit", value)} options={[{ label: "km/h", value: "kmh" }, { label: "m/s", value: "ms" }, { label: "nœuds", value: "knots" }]} value={preferences.windUnit} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Unités", "Units")}</strong>
+        <Setting label={tr("Vent", "Wind")}>
+          <Choice onChange={(value) => update("windUnit", value)} options={[{ label: "km/h", value: "kmh" }, { label: "m/s", value: "ms" }, { label: tr("nœuds", "knots"), value: "knots" }]} value={preferences.windUnit} />
         </Setting>
-        <Setting label="Distance">
+        <Setting label={tr("Distance", "Distance")}>
           <Choice onChange={(value) => update("distanceUnit", value)} options={[{ label: "km", value: "km" }, { label: "miles", value: "miles" }]} value={preferences.distanceUnit} />
         </Setting>
-        <Setting label="Surfaces mesurées et brûlées">
-          <Choice onChange={(value) => update("areaUnit", value)} options={[{ label: "hectares", value: "ha" }, { label: "km²", value: "km2" }]} value={preferences.areaUnit} />
+        <Setting label={tr("Surfaces mesurées et brûlées", "Measured and burned areas")}>
+          <Choice onChange={(value) => update("areaUnit", value)} options={[{ label: tr("hectares", "hectares"), value: "ha" }, { label: "km²", value: "km2" }]} value={preferences.areaUnit} />
         </Setting>
-        <Setting label="Coordonnées">
-          <Choice onChange={(value) => update("coordinateFormat", value)} options={[{ label: "DMS", value: "dms" }, { label: "Décimales", value: "decimal" }]} value={preferences.coordinateFormat} />
+        <Setting label={tr("Coordonnées", "Coordinates")}>
+          <Choice onChange={(value) => update("coordinateFormat", value)} options={[{ label: "DMS", value: "dms" }, { label: tr("Décimales", "Decimal"), value: "decimal" }]} value={preferences.coordinateFormat} />
         </Setting>
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">Accessibilité</strong>
-        <Setting label="Taille du texte">
-          <Choice onChange={(value) => update("textSize", value)} options={[{ label: "Normale", value: "normal" }, { label: "Grande", value: "large" }]} value={preferences.textSize} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Accessibilité", "Accessibility")}</strong>
+        <Setting label={tr("Taille du texte", "Text size")}>
+          <Choice onChange={(value) => update("textSize", value)} options={[{ label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Grande", "Large"), value: "large" }]} value={preferences.textSize} />
         </Setting>
-        <Toggle checked={preferences.highContrast} label="Contraste renforcé" onChange={(value) => update("highContrast", value)} />
-        <Toggle checked={preferences.reduceMotion} label="Réduire les animations" onChange={(value) => update("reduceMotion", value)} />
+        <Toggle checked={preferences.highContrast} label={tr("Contraste renforcé", "High contrast")} onChange={(value) => update("highContrast", value)} />
+        <Toggle checked={preferences.reduceMotion} label={tr("Réduire les animations", "Reduce motion")} onChange={(value) => update("reduceMotion", value)} />
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">Alertes</strong>
-        <Setting label="Rayon par défaut">
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Alertes", "Alerts")}</strong>
+        <Setting label={tr("Rayon par défaut", "Default radius")}>
           <Choice onChange={(value) => update("alertRadiusKm", value)} options={[5, 10, 25, 50].map((value) => ({ label: `${value} km`, value: value as 5 | 10 | 25 | 50 }))} value={preferences.alertRadiusKm} />
         </Setting>
-        <small className="leading-normal text-muted">Ce rayon sera proposé pour les prochains lieux surveillés.</small>
+        <small className="leading-normal text-muted">{tr("Ce rayon sera proposé pour les prochains lieux surveillés.", "This radius will be suggested for newly watched places.")}</small>
       </section>
     </aside>
   );

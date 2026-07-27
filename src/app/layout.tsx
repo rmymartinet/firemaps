@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Gochi_Hand } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { LanguageProvider } from "@/i18n/language-context";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 
@@ -26,8 +27,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr">
       <body className={gochiHand.variable}>
-        {children}
-        <ServiceWorkerRegistration />
+        <LanguageProvider>
+          {children}
+          <ServiceWorkerRegistration />
+        </LanguageProvider>
       </body>
     </html>
   );

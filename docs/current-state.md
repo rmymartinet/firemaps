@@ -371,10 +371,11 @@ une livraison garantie nécessite toujours :
 
 ## Robustesse mobile et Safari
 
-- Le chargement FIRMS effectue d’abord trois tentatives courtes. Si elles
-  échouent, trois reprises espacées sont programmées après 2,5 s, 7,5 s et
-  15 s. Une remise au premier plan de Safari, un retour depuis le cache de page
-  ou une reconnexion réseau relance aussi la récupération lorsque l’état est en
+- Le chargement FIRMS effectue une tentative courte afin de ne pas laisser
+  l’interface attendre plusieurs dizaines de secondes. Trois reprises espacées
+  restent programmées après 2,5 s, 7,5 s et 15 s. Une remise au premier plan de
+  Safari, un retour depuis le cache de page ou une reconnexion réseau relance
+  aussi la récupération lorsque l’état est en
   erreur. Un rechargement manuel de l’application ne devrait donc plus être
   nécessaire.
 - L’écran de chargement conserve `logo.mp4` sur Chrome, Firefox, Edge et les
@@ -398,3 +399,33 @@ une livraison garantie nécessite toujours :
   dessinées restent toujours distinctes.
 - L’expiration dépend de la catégorie : 2 h pour flammes et évacuation, 3 h
   pour fumée et autre, 4 h pour intervention et 6 h pour route fermée.
+
+## Langues
+
+- L’interface peut être utilisée en français ou en anglais depuis la première
+  section des réglages de la carte.
+- Le choix est conservé localement, met à jour la langue du document et adapte
+  également les dates, heures et âges des observations.
+- Les principaux parcours sont traduits : carte et chronologie, recherche,
+  compte, informations de sécurité et création d’un signalement.
+
+## Couverture mondiale des détections
+
+- Les détections NASA FIRMS ne sont plus limitées à l’emprise de la France.
+  La carte envoie au serveur les limites de la zone actuellement visible et
+  charge les capteurs VIIRS pour cette emprise, partout dans le monde.
+- Un déplacement ou un changement de zoom déclenche une récupération différée
+  de 650 ms. L’emprise est arrondie vers l’extérieur pour réutiliser le cache
+  lors des petits déplacements et éviter les rafales de requêtes.
+- À une échelle presque mondiale, Firemaps demande de rapprocher la carte au
+  lieu de lancer une requête FIRMS démesurée qui risquerait d’expirer.
+- Le regroupement et la déduplication utilisent un index géographique plutôt
+  qu’une comparaison de chaque point avec tous les autres. Les contours locaux
+  détaillés ne sont calculés qu’à partir du zoom 8 afin qu’une réponse dense sur
+  un continent ne bloque pas l’interface.
+- Pendant une récupération FIRMS, le résumé « Signaux » conserve le précédent
+  résultat et affiche le logo animé avec « Recherche dans cette zone… ». La
+  carte reste donc utilisable et l’état de chargement demeure immédiatement
+  visible sans ajouter de fenêtre bloquante.
+- Le cache FIRMS est séparé par emprise et par période. Une réponse ancienne
+  d’une autre région ne peut donc pas être affichée comme repli local.
