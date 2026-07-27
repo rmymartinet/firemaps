@@ -770,6 +770,9 @@ function CommunityReportsLayer({
               <span className={`community-status community-status-${status}`}>{communityStatusLabels[status]}</span>
               <div className="popup-title">{communityCategoryLabels[report.category]}</div>
               <p>Observation citoyenne du {new Date(report.capturedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</p>
+              {report.reportCount && report.reportCount > 1 && (
+                <p><strong>{report.reportCount} témoignages proches regroupés sur ce repère.</strong></p>
+              )}
               {report.description && <p>{report.description}</p>}
               {direction != null && (
                 <p><strong>{report.directionType === "smoke" ? "Direction de fumée" : "Progression observée"} :</strong> environ {direction}° · indication communautaire.</p>

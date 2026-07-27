@@ -1,5 +1,14 @@
-import type { Prisma } from "@/generated/prisma/client";
-import { mediaKindFromUrl, reportExpiry, type CommunityCategory, type CommunityMediaKind } from "@/domain/community-report";
+import { createHmac } from "node:crypto";
+import { Prisma } from "@/generated/prisma/client";
+import { distanceKm } from "@/domain/distance";
+import {
+  groupNearbyCommunityReports,
+  mediaKindFromUrl,
+  reportExpiry,
+  type CommunityCategory,
+  type CommunityMediaKind,
+  type CommunityReport,
+} from "@/domain/community-report";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/prisma";
 import { verifyR2Object } from "@/server/r2";
@@ -20,6 +29,30 @@ const mediaTypeMap: Record<Exclude<CommunityMediaKind, "none">, "PHOTO" | "VIDEO
   video: "VIDEO",
   "video-link": "EXTERNAL_VIDEO",
 };
+const USER_REPORT_LIMIT_PER_HOUR = 5;
+const USER_REPORT_LIMIT_PER_DAY = 15;
+const IP_REPORT_LIMIT_PER_HOUR = 20;
+const IP_REPORT_LIMIT_PER_DAY = 60;
+const OWN_DUPLICATE_RADIUS_KM = 0.5;
+const OWN_DUPLICATE_WINDOW_MS = 2 * 3_600_000;
+
+class ReportProtectionError extends Error {
+  constructor(
+    message: string,
+    readonly status: 409 | 429,
+    readonly retryAfter?: number,
+  ) {
+    super(message);
+  }
+}
+
+function requestIpHash(request: Request): string | null {
+  const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")?.trim();
+  const secret = process.env.COMMUNITY_RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET;
+  if (!rawIp || !secret) return null;
+  return createHmac("sha256", secret).update(rawIp).digest("hex");
+}
 
 type ReportInput = {
   accuracyMeters?: number | null;
@@ -43,7 +76,7 @@ type ReportInput = {
 function serializeReport(report: Awaited<ReturnType<typeof prisma.communityReport.findMany>>[number] & {
   media: Array<{ type: string; url: string }>;
   votes: Array<{ value: number }>;
-}, viewerId?: string) {
+}, viewerId?: string): CommunityReport {
   const confirms = report.votes.filter((vote) => vote.value === 1).length;
   const disputes = report.votes.filter((vote) => vote.value === -1).length;
   const media = report.media[0];
@@ -63,7 +96,7 @@ function serializeReport(report: Awaited<ReturnType<typeof prisma.communityRepor
     createdAt: report.createdAt.toISOString(),
     description: report.description,
     directionDegrees: report.directionDegrees,
-    directionType: report.directionType,
+    directionType: report.directionType === "smoke" || report.directionType === "spread" ? report.directionType : null,
     disputes,
     expiresAt: report.expiresAt.toISOString(),
     id: report.id,
@@ -71,7 +104,7 @@ function serializeReport(report: Awaited<ReturnType<typeof prisma.communityRepor
     longitude: Number(report.longitude),
     mediaKind,
     mediaUrl: media?.url ?? null,
-    observedZone: report.observedZone,
+    observedZone: report.observedZone as CommunityReport["observedZone"],
     ownedByViewer: Boolean(viewerId && report.reporterId === viewerId),
     reporterAlias,
   };
@@ -91,7 +124,9 @@ export async function GET(request: Request) {
       moderationStatus: { in: ["PENDING", "PUBLISHED"] },
     },
   });
-  const reportsPayload = reports.map((report) => serializeReport(report, session?.user?.id));
+  const reportsPayload = groupNearbyCommunityReports(
+    reports.map((report) => serializeReport(report, session?.user?.id)),
+  );
   const viewerVotes = session?.user
     ? Object.fromEntries(reports.flatMap((report) => {
         const vote = report.votes.find((item) => item.voterId === session.user.id);
@@ -106,6 +141,8 @@ export async function POST(request: Request) {
   if (!session?.user) return Response.json({ message: "Connectez-vous pour publier un signalement." }, { status: 401 });
   const body = await request.json().catch(() => null) as ReportInput | null;
   if (!body?.category || !(body.category in categoryMap)) return Response.json({ message: "Catégorie invalide." }, { status: 400 });
+  const category = body.category;
+  const databaseCategory = categoryMap[category];
   if (!Number.isFinite(body.latitude) || Number(body.latitude) < -90 || Number(body.latitude) > 90
     || !Number.isFinite(body.longitude) || Number(body.longitude) < -180 || Number(body.longitude) > 180) {
     return Response.json({ message: "Position invalide." }, { status: 400 });
@@ -146,22 +183,83 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const report = await prisma.communityReport.create({
-    data: {
-      accuracyMeters: body.accuracyMeters == null ? null : Math.max(0, Math.round(body.accuracyMeters)),
-      capturedAt,
-      category: categoryMap[body.category],
-      description: (body.description ?? "").trim().slice(0, 500),
-      directionDegrees,
-      directionType: directionDegrees === null ? null : body.directionType,
-      expiresAt: new Date(reportExpiry(body.category, now)),
-      latitude: body.latitude!,
-      longitude: body.longitude!,
-      media: mediaCreate ? { create: mediaCreate } : undefined,
-      observedZone: zone ?? undefined,
-      reporterId: session.user.id,
-    },
-    include: { media: true, votes: { select: { value: true } } },
-  });
+  const ipHash = requestIpHash(request);
+  let report;
+  try {
+    report = await prisma.$transaction(async (transaction) => {
+      const hourStart = new Date(now.getTime() - 3_600_000);
+      const dayStart = new Date(now.getTime() - 24 * 3_600_000);
+      const [userHourCount, userDayCount, ipHourCount, ipDayCount] = await Promise.all([
+        transaction.communityReport.count({ where: { createdAt: { gte: hourStart }, reporterId: session.user.id } }),
+        transaction.communityReport.count({ where: { createdAt: { gte: dayStart }, reporterId: session.user.id } }),
+        ipHash ? transaction.communityReport.count({ where: { createdAt: { gte: hourStart }, reporterIpHash: ipHash } }) : Promise.resolve(0),
+        ipHash ? transaction.communityReport.count({ where: { createdAt: { gte: dayStart }, reporterIpHash: ipHash } }) : Promise.resolve(0),
+      ]);
+      if (userHourCount >= USER_REPORT_LIMIT_PER_HOUR) {
+        throw new ReportProtectionError("Vous avez atteint la limite de 5 signalements par heure.", 429, 3_600);
+      }
+      if (userDayCount >= USER_REPORT_LIMIT_PER_DAY) {
+        throw new ReportProtectionError("Vous avez atteint la limite de 15 signalements par jour.", 429, 86_400);
+      }
+      if (ipHourCount >= IP_REPORT_LIMIT_PER_HOUR || ipDayCount >= IP_REPORT_LIMIT_PER_DAY) {
+        throw new ReportProtectionError("Trop de signalements ont été envoyés depuis cette connexion. Réessayez plus tard.", 429, 3_600);
+      }
+
+      if (!zone?.length) {
+        const latitudeDelta = OWN_DUPLICATE_RADIUS_KM / 111;
+        const longitudeDelta = OWN_DUPLICATE_RADIUS_KM
+          / Math.max(20, 111 * Math.cos(Number(body.latitude) * Math.PI / 180));
+        const candidates = await transaction.communityReport.findMany({
+          select: { latitude: true, longitude: true },
+          where: {
+            capturedAt: { gte: new Date(capturedAt.getTime() - OWN_DUPLICATE_WINDOW_MS) },
+            category: databaseCategory,
+            expiresAt: { gt: now },
+            latitude: { gte: Number(body.latitude) - latitudeDelta, lte: Number(body.latitude) + latitudeDelta },
+            longitude: { gte: Number(body.longitude) - longitudeDelta, lte: Number(body.longitude) + longitudeDelta },
+            moderationStatus: { in: ["PENDING", "PUBLISHED"] },
+            observedZone: { equals: Prisma.JsonNull },
+            reporterId: session.user.id,
+          },
+        });
+        if (candidates.some((candidate) => distanceKm(
+          { latitude: Number(body.latitude), longitude: Number(body.longitude) },
+          { latitude: Number(candidate.latitude), longitude: Number(candidate.longitude) },
+        ) <= OWN_DUPLICATE_RADIUS_KM)) {
+          throw new ReportProtectionError("Vous avez déjà publié une observation similaire à proximité.", 409);
+        }
+      }
+
+      return transaction.communityReport.create({
+        data: {
+          accuracyMeters: body.accuracyMeters == null ? null : Math.max(0, Math.round(body.accuracyMeters)),
+          capturedAt,
+          category: databaseCategory,
+          description: (body.description ?? "").trim().slice(0, 500),
+          directionDegrees,
+          directionType: directionDegrees === null ? null : body.directionType,
+          expiresAt: new Date(reportExpiry(category, now)),
+          latitude: body.latitude!,
+          longitude: body.longitude!,
+          media: mediaCreate ? { create: mediaCreate } : undefined,
+          observedZone: zone ?? undefined,
+          reporterId: session.user.id,
+          reporterIpHash: ipHash,
+        },
+        include: { media: true, votes: { select: { value: true } } },
+      });
+    }, { isolationLevel: "Serializable" });
+  } catch (error) {
+    if (error instanceof ReportProtectionError) {
+      return Response.json(
+        { code: error.status === 429 ? "REPORT_RATE_LIMIT" : "DUPLICATE_REPORT", message: error.message },
+        {
+          status: error.status,
+          headers: error.retryAfter ? { "Retry-After": String(error.retryAfter) } : undefined,
+        },
+      );
+    }
+    throw error;
+  }
   return Response.json({ report: serializeReport(report, session.user.id) }, { status: 201 });
 }

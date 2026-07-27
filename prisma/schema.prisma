@@ -52,6 +52,7 @@ model CommunityReport {
   expiresAt        DateTime                        @db.Timestamptz(3)
   moderationStatus CommunityReportModerationStatus @default(PENDING)
   reporterId       String?                         @db.VarChar(128)
+  reporterIpHash   String?                         @db.VarChar(64)
   createdAt        DateTime                        @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime                        @updatedAt @db.Timestamptz(3)
   media            CommunityMedia[]
@@ -61,6 +62,8 @@ model CommunityReport {
   @@index([moderationStatus, expiresAt])
   @@index([latitude, longitude])
   @@index([createdAt])
+  @@index([reporterId, createdAt])
+  @@index([reporterIpHash, createdAt])
 }
 
 model User {

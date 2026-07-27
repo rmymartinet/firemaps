@@ -87,6 +87,21 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
 7. Vérifier dans tous les écrans que les détections satellite, informations
    officielles et contributions citoyennes restent clairement différenciées.
 
+## Lot 9 — Confiance communautaire et modération
+
+1. ✅ Limiter les créations par compte et par empreinte réseau sans conserver
+   l’adresse IP brute.
+2. ✅ Bloquer les doublons rapprochés d’un même auteur et regrouper visuellement
+   les témoignages ponctuels proches de personnes différentes.
+3. ✅ Appliquer une expiration courte adaptée à chaque catégorie.
+4. Exiger la vérification de l’adresse e-mail avant la première contribution.
+5. Construire un score de confiance progressif sans afficher de classement
+   public des utilisateurs.
+6. Détecter les votes coordonnés et interdire le vote sur sa propre
+   contribution.
+7. Ajouter une file de modération, un journal d’audit et des actions de
+   suspension, regroupement et masquage.
+
 # Après la vue opérationnelle
 
 - Remplacer le WMS EFFIS par un flux vectoriel autorisé lorsqu’un endpoint

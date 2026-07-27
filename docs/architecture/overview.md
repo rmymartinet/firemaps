@@ -6,7 +6,13 @@ Monolithe Next.js 16 App Router en TypeScript, déployable sur Vercel. Les compo
 
 NASA FIRMS → `src/integrations/firms.ts` → route serveur `/api/incidents/firms` → modèle `Incident` traçable → filtres et regroupement client → Leaflet.
 
-La clé FIRMS reste exclusivement côté serveur. Les trois capteurs sont interrogés indépendamment ; la route peut rendre un résultat partiel. La réponse réussie est cachée 15 minutes par le CDN avec 30 minutes de `stale-while-revalidate`.
+La clé FIRMS reste exclusivement côté serveur. Les trois capteurs sont
+interrogés indépendamment ; la route peut rendre un résultat partiel. Une
+réponse réussie est cachée cinq minutes par le CDN avec dix minutes de
+`stale-while-revalidate`. La dernière réponse réussie disponible dans
+l’instance serveur peut être rendue comme secours. Côté client, les erreurs
+initiales déclenchent des reprises espacées ; une reconnexion ou le retour au
+premier plan relance également FIRMS lorsque la carte est en erreur.
 
 ## Carte
 

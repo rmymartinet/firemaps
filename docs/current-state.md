@@ -299,13 +299,12 @@ une livraison garantie nécessite toujours :
   périmètre d’incendie.
 - Sur la page cartographique, l’en-tête blanc global est masqué et la carte
   occupe toute la hauteur de l’écran. Les autres pages conservent leur en-tête.
-- Le bouton Informations ouvre les explications et consignes dans une fenêtre
-  superposée à la carte au lieu de changer de page. Elle se ferme avec sa croix,
-  un clic sur l’arrière-plan ou la touche Échap ; la route `/informations`
-  reste disponible pour un accès direct. Son contenu est volontairement
-  progressif : urgence visible immédiatement, définition des points ouverte
-  par défaut, puis accordéons pour la protection, les autres couches et les
-  sources. Les anciennes explications relatives aux hachures ont été retirées.
+- Le bouton Informations ouvre les explications dans un panneau latéral
+  attaché aux outils sur ordinateur, sans masquer le centre de la carte. Sur
+  mobile, il devient une feuille qui monte depuis le bas et redescend à la
+  fermeture. Son contenu reste progressif : urgence visible immédiatement,
+  définition des points ouverte par défaut, puis accordéons pour la
+  protection, les autres couches et les sources.
 - Les modales applicatives utilisent par défaut le même langage que Réglages :
   feuille blanche, double contour irrégulier, sections rectangulaires au stylo
   et contrôles sans aplats inutiles. La modale Informations conserve
@@ -323,7 +322,9 @@ une livraison garantie nécessite toujours :
   intensité des halos, infobulles, fuseau et format horaire, vitesse de lecture,
   unités du vent, des mesures et des coordonnées, taille du texte, contraste,
   réduction des animations, grands contrôles mobiles et rayon d’alerte.
-  « … » reste réservé aux couches et fonctions secondaires.
+  « … » reste réservé aux couches et fonctions secondaires. Sur mobile, son
+  panneau passe devant la colonne d’outils, avec une légère marge contre le
+  bord droit afin qu’aucun bouton partiellement visible ne gêne la lecture.
   Les halos thermiques,
   qui représentent l’information principale, restent toujours visibles et
   n’occupent plus un bouton. « … » ouvre
@@ -367,3 +368,33 @@ une livraison garantie nécessite toujours :
   végétation par commune », déclarée sur data.gouv.fr et issue de BDIFF,
   Prométhée et autres sources officielles. Les positions sont communales et non
   celles des départs exacts.
+
+## Robustesse mobile et Safari
+
+- Le chargement FIRMS effectue d’abord trois tentatives courtes. Si elles
+  échouent, trois reprises espacées sont programmées après 2,5 s, 7,5 s et
+  15 s. Une remise au premier plan de Safari, un retour depuis le cache de page
+  ou une reconnexion réseau relance aussi la récupération lorsque l’état est en
+  erreur. Un rechargement manuel de l’application ne devrait donc plus être
+  nécessaire.
+- L’écran de chargement conserve `logo.mp4` sur Chrome, Firefox, Edge et les
+  autres navigateurs. Safari est détecté par sa signature
+  `Version/... Safari/...` et utilise une animation CSS de `logo.png`, car iOS
+  peut refuser l’autoplay même pour une vidéo muette et intégrée. Cette solution
+  ne nécessite aucune interaction et respecte la préférence système de
+  réduction des animations.
+
+## Protection contre les abus communautaires
+
+- La création d’un signalement est limitée à 5 par heure et 15 par jour pour
+  un compte. Une seconde limite, calculée à partir d’une empreinte HMAC de
+  l’adresse IP, autorise au maximum 20 créations par heure et 60 par jour
+  depuis une même connexion. Aucune adresse IP brute n’est enregistrée.
+- Un auteur ne peut pas créer deux observations ponctuelles de même catégorie
+  dans un rayon de 500 m pendant deux heures.
+- Les observations ponctuelles similaires de personnes différentes sont
+  conservées séparément en base mais regroupées en un seul repère sur la carte.
+  Le repère indique le nombre de témoignages associés. Les zones et limites
+  dessinées restent toujours distinctes.
+- L’expiration dépend de la catégorie : 2 h pour flammes et évacuation, 3 h
+  pour fumée et autre, 4 h pour intervention et 6 h pour route fermée.
