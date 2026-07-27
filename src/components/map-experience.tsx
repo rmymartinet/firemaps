@@ -133,6 +133,7 @@ export function MapExperience() {
   const [isOnline, setIsOnline] = useState(true);
   const [referenceTime, setReferenceTime] = useState(() => Date.now());
   const [refreshRevision, setRefreshRevision] = useState(0);
+  const firmsRecoveryAttemptsRef = useRef(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [nextRefreshAt, setNextRefreshAt] = useState(() => Date.now() + 10 * 60_000);
   const [clock, setClock] = useState(() => Date.now());
@@ -697,6 +698,7 @@ export function MapExperience() {
 
   useEffect(() => {
     const controller = new AbortController();
+    let recoveryTimeout: number | undefined;
     async function loadIncidents() {
       setIsRefreshing(true);
       try {
@@ -732,6 +734,7 @@ export function MapExperience() {
           fetchedAt: payload.fetchedAt,
           partial: payload.failedSources.length > 0,
         });
+        firmsRecoveryAttemptsRef.current = 0;
         setReferenceTime(refreshedAt);
         setNextRefreshAt(refreshedAt + 10 * 60_000);
       } catch (error) {
@@ -739,13 +742,43 @@ export function MapExperience() {
         setState((current) => current.incidents.length
           ? current
           : { status: "error", incidents: [], message: error instanceof Error ? error.message : "La source satellite est indisponible." });
+        if (firmsRecoveryAttemptsRef.current < 3) {
+          const recoveryDelays = [2_500, 7_500, 15_000];
+          const delay = recoveryDelays[firmsRecoveryAttemptsRef.current];
+          firmsRecoveryAttemptsRef.current += 1;
+          recoveryTimeout = window.setTimeout(() => {
+            if (navigator.onLine && document.visibilityState === "visible") {
+              setRefreshRevision((revision) => revision + 1);
+            }
+          }, delay);
+        }
       } finally {
         if (!controller.signal.aborted) setIsRefreshing(false);
       }
     }
     loadIncidents();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (recoveryTimeout !== undefined) window.clearTimeout(recoveryTimeout);
+    };
   }, [mapPreferences.timelineRangeDays, refreshRevision]);
+
+  useEffect(() => {
+    if (state.status !== "error") return;
+    const retryWhenActive = () => {
+      if (!navigator.onLine || document.visibilityState !== "visible") return;
+      firmsRecoveryAttemptsRef.current = 0;
+      setRefreshRevision((revision) => revision + 1);
+    };
+    window.addEventListener("online", retryWhenActive);
+    window.addEventListener("pageshow", retryWhenActive);
+    document.addEventListener("visibilitychange", retryWhenActive);
+    return () => {
+      window.removeEventListener("online", retryWhenActive);
+      window.removeEventListener("pageshow", retryWhenActive);
+      document.removeEventListener("visibilitychange", retryWhenActive);
+    };
+  }, [state.status]);
 
   useEffect(() => {
     if (!showWind || windLoadedRef.current) return;
