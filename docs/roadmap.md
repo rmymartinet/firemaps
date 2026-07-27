@@ -16,9 +16,11 @@ Next.js/TypeScript, layout mobile, navigation, PWA minimale, Leaflet, modèles i
 
 ## Lot 3 — Backend et modération
 
-1. Projet Supabase et migrations versionnées.
-2. RLS, stockage privé, suppression EXIF et limites d’upload.
-3. Prototype local terminé : observation géolocalisée, photo légère ou lien vidéo, marqueur, expiration et vote. Restant : remplacer `localStorage` par un envoi `pending` synchronisé.
+1. Terminé : PostgreSQL Neon, Prisma et migrations versionnées.
+2. Partiel : stockage R2 et limites d’upload. Restant : stockage privé,
+   suppression EXIF et analyse des médias.
+3. Terminé : observation géolocalisée, photo légère ou lien vidéo, marqueur,
+   expiration et vote enregistrés côté serveur.
 4. Administration minimale et transitions de statut auditées.
 
 ## Lot 4 — Première source réelle et carte opérationnelle (partiellement terminé)
@@ -41,6 +43,10 @@ Next.js/TypeScript, layout mobile, navigation, PWA minimale, Leaflet, modèles i
 ## Lot 6 — Durcissement et pilote
 
 Audit accessibilité/Lighthouse, PNG PWA, tests E2E mobile, budget performance, observabilité respectueuse, politique de cache/données, revue sécurité et déploiement pilote.
+
+Le cache partagé des signalements et les limites applicatives sont en place.
+Restent à configurer hors dépôt : règles Vercel WAF, domaine personnalisé R2,
+alertes de dépenses et métriques, puis réglage de l’autoscaling Neon.
 
 ## Lot 7 — Lisibilité, performance et validation utilisateur
 

@@ -10,6 +10,7 @@ import {
   type CommunityReport,
 } from "@/domain/community-report";
 import { auth } from "@/server/auth";
+import { getCachedCommunityReports, invalidateCommunityReports } from "@/server/community-report-cache";
 import { prisma } from "@/server/prisma";
 import { verifyR2Object } from "@/server/r2";
 
@@ -73,10 +74,24 @@ type ReportInput = {
   observedZone?: Array<{ latitude: number; longitude: number }> | null;
 };
 
-function serializeReport(report: Awaited<ReturnType<typeof prisma.communityReport.findMany>>[number] & {
+function serializeReport(report: {
+  accuracyMeters: number | null;
+  capturedAt: Date | string;
+  category: string;
+  createdAt: Date | string;
+  description: string;
+  directionDegrees: number | null;
+  directionType: string | null;
+  expiresAt: Date | string;
+  id: string;
+  latitude: number | { toString(): string };
+  longitude: number | { toString(): string };
+  observedZone: unknown;
+  reporterId: string | null;
   media: Array<{ type: string; url: string }>;
   votes: Array<{ value: number }>;
 }, viewerId?: string): CommunityReport {
+  const iso = (value: Date | string) => typeof value === "string" ? value : value.toISOString();
   const confirms = report.votes.filter((vote) => vote.value === 1).length;
   const disputes = report.votes.filter((vote) => vote.value === -1).length;
   const media = report.media[0];
@@ -90,15 +105,15 @@ function serializeReport(report: Awaited<ReturnType<typeof prisma.communityRepor
     : "Membre";
   return {
     accuracyMeters: report.accuracyMeters,
-    capturedAt: report.capturedAt.toISOString(),
+    capturedAt: iso(report.capturedAt),
     category: reverseCategory[report.category],
     confirms,
-    createdAt: report.createdAt.toISOString(),
+    createdAt: iso(report.createdAt),
     description: report.description,
     directionDegrees: report.directionDegrees,
     directionType: report.directionType === "smoke" || report.directionType === "spread" ? report.directionType : null,
     disputes,
-    expiresAt: report.expiresAt.toISOString(),
+    expiresAt: iso(report.expiresAt),
     id: report.id,
     latitude: Number(report.latitude),
     longitude: Number(report.longitude),
@@ -112,18 +127,7 @@ function serializeReport(report: Awaited<ReturnType<typeof prisma.communityRepor
 
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
-  const reports = await prisma.communityReport.findMany({
-    include: {
-      media: { where: { status: "READY" }, orderBy: { createdAt: "desc" }, take: 1 },
-      votes: { select: { value: true, voterId: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 250,
-    where: {
-      expiresAt: { gt: new Date() },
-      moderationStatus: { in: ["PENDING", "PUBLISHED"] },
-    },
-  });
+  const reports = await getCachedCommunityReports();
   const reportsPayload = groupNearbyCommunityReports(
     reports.map((report) => serializeReport(report, session?.user?.id)),
   );
@@ -261,5 +265,6 @@ export async function POST(request: Request) {
     }
     throw error;
   }
+  invalidateCommunityReports();
   return Response.json({ report: serializeReport(report, session.user.id) }, { status: 201 });
 }

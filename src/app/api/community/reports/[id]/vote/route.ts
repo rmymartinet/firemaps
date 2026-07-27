@@ -1,9 +1,13 @@
 import { auth } from "@/server/auth";
+import { invalidateCommunityReports } from "@/server/community-report-cache";
 import { prisma } from "@/server/prisma";
+import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
 
 export async function POST(request: Request, context: RouteContext<"/api/community/reports/[id]/vote">) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour voter." }, { status: 401 });
+  const rateLimit = consumeRateLimit("community-vote", session.user.id, 60, 60_000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter);
   const { id } = await context.params;
   const body = await request.json().catch(() => null) as { value?: number } | null;
   if (body?.value !== 1 && body?.value !== -1) return Response.json({ message: "Vote invalide." }, { status: 400 });
@@ -25,6 +29,7 @@ export async function POST(request: Request, context: RouteContext<"/api/communi
     by: ["value"],
     where: { reportId: id },
   });
+  invalidateCommunityReports();
   return Response.json({
     confirms: grouped.find((item) => item.value === 1)?._count ?? 0,
     disputes: grouped.find((item) => item.value === -1)?._count ?? 0,

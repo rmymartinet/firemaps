@@ -1,7 +1,9 @@
 import { Prisma } from "@/generated/prisma/client";
 import { mediaKindFromUrl, type CommunityMediaKind } from "@/domain/community-report";
 import { auth } from "@/server/auth";
+import { invalidateCommunityReports } from "@/server/community-report-cache";
 import { prisma } from "@/server/prisma";
+import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { verifyR2Object } from "@/server/r2";
 
 const mediaTypeMap: Record<Exclude<CommunityMediaKind, "none">, "PHOTO" | "VIDEO" | "TIKTOK" | "INSTAGRAM" | "EXTERNAL_VIDEO"> = {
@@ -33,6 +35,8 @@ type EnrichmentInput = {
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour modifier ce signalement." }, { status: 401 });
+  const rateLimit = consumeRateLimit("community-edit", session.user.id, 30, 60_000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter);
   const { id } = await context.params;
   const existing = await prisma.communityReport.findFirst({ select: { id: true }, where: { id, reporterId: session.user.id } });
   if (!existing) return Response.json({ message: "Signalement introuvable." }, { status: 404 });
@@ -94,14 +98,18 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     },
     where: { id },
   });
+  invalidateCommunityReports();
   return Response.json({ ok: true });
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour supprimer ce signalement." }, { status: 401 });
+  const rateLimit = consumeRateLimit("community-delete", session.user.id, 10, 60_000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter);
   const { id } = await context.params;
   const deleted = await prisma.communityReport.deleteMany({ where: { id, reporterId: session.user.id } });
   if (deleted.count === 0) return Response.json({ message: "Signalement introuvable ou non autorisé." }, { status: 404 });
+  invalidateCommunityReports();
   return new Response(null, { status: 204 });
 }

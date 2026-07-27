@@ -1,5 +1,6 @@
 import { auth } from "@/server/auth";
 import { createCommunityMediaKey, createR2UploadUrl } from "@/server/r2";
+import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
 
 const allowedMedia = {
   "image/jpeg": { extension: "jpg", kind: "image", maxBytes: 15_000_000 },
@@ -13,6 +14,8 @@ const allowedMedia = {
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour publier un média." }, { status: 401 });
+  const rateLimit = consumeRateLimit("media-upload", session.user.id, 10, 10 * 60_000);
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter);
 
   const body = await request.json().catch(() => null) as { contentType?: string; sizeBytes?: number } | null;
   const contentType = body?.contentType as keyof typeof allowedMedia | undefined;

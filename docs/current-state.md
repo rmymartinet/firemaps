@@ -399,6 +399,15 @@ une livraison garantie nécessite toujours :
   dessinées restent toujours distinctes.
 - L’expiration dépend de la catégorie : 2 h pour flammes et évacuation, 3 h
   pour fumée et autre, 4 h pour intervention et 6 h pour route fermée.
+- Les lectures communautaires partagent désormais un cache Next/Vercel de
+  20 secondes, invalidé après chaque écriture. Cela évite qu’un afflux de
+  visiteurs répète la même requête lourde sur Neon.
+- Les demandes d’upload R2, votes, modifications et suppressions disposent
+  aussi de limites applicatives par compte. Better Auth limite les routes de
+  connexion, inscription et récupération de mot de passe.
+- Ces compteurs applicatifs sont locaux à une instance Vercel. Des règles WAF
+  restent nécessaires pour une protection distribuée ; la procédure est
+  documentée dans `docs/architecture/security.md`.
 
 ## Langues
 
