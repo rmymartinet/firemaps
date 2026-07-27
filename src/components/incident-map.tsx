@@ -1003,6 +1003,9 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
     ? `${(distance * 0.621371).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} mi`
     : distance < 1 ? `${Math.round(distance * 1_000)} m` : `${distance.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km`;
   const labelPosition = previewPoints.at(-1);
+  const distanceLabelFacesLeft = labelPosition
+    ? map.latLngToContainerPoint(labelPosition).x > map.getSize().x - 230
+    : false;
   return (
     <>
       {previewPoints.length > 1 && (
@@ -1041,9 +1044,9 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
             onFinish();
           } }}
           icon={divIcon({
-            className: "measurement-label-marker",
+            className: `measurement-label-marker measurement-label-${distanceLabelFacesLeft ? "left" : "right"}`,
             html: `<span><em>${distanceLabel}</em>${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider la mesure">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer la mesure">×</b></span>`,
-            iconAnchor: [0, 38],
+            iconAnchor: [0, 0],
             iconSize: [0, 0],
           })}
           interactive
@@ -1147,12 +1150,13 @@ function AreaMeasureLayer({
 
   const previewPoints = active && !finished && cursorPoint && points.length > 0 ? [...points, cursorPoint] : points;
   const area = measuredAreaSquareKm(previewPoints);
-  const center = previewPoints.length
-    ? {
-        lat: previewPoints.reduce((sum, point) => sum + point.lat, 0) / previewPoints.length,
-        lng: previewPoints.reduce((sum, point) => sum + point.lng, 0) / previewPoints.length,
-      }
-    : null;
+  const labelPosition = previewPoints.reduce<LatLng | null>(
+    (rightmost, point) => !rightmost || point.lng > rightmost.lng ? point : rightmost,
+    null,
+  );
+  const areaLabelFacesLeft = labelPosition
+    ? map.latLngToContainerPoint(labelPosition).x > map.getSize().x - 230
+    : false;
   const areaLabel = area >= 1_000
     ? `${area.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} km²`
     : unit === "ha"
@@ -1195,7 +1199,7 @@ function AreaMeasureLayer({
           radius={index === 0 ? 6 : 5}
         />
       ))}
-      {previewPoints.length >= minimumPoints && center && (
+      {previewPoints.length >= minimumPoints && labelPosition && (
         <Marker
           bubblingMouseEvents={false}
           eventHandlers={{ click: (event) => {
@@ -1213,13 +1217,13 @@ function AreaMeasureLayer({
             onCancel();
           } }}
           icon={divIcon({
-            className: "measurement-label-marker area-measurement-label-marker",
+            className: `measurement-label-marker area-measurement-label-marker measurement-label-${areaLabelFacesLeft ? "left" : "right"}`,
             html: `<span><em>${closeShape ? areaLabel : "Limite"}</em>${!finished ? '<b class="measurement-confirm" data-measure-action="finish" title="Valider le tracé">✓</b>' : ""}<b data-measure-action="clear" title="Supprimer le tracé">×</b></span>`,
-            iconAnchor: [0, 16],
+            iconAnchor: [0, 0],
             iconSize: [0, 0],
           })}
           interactive
-          position={center}
+          position={labelPosition}
         />
       )}
     </>

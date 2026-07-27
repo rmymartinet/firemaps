@@ -26,9 +26,6 @@ body { margin: 0; min-height: 100dvh; }
 button, input, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; }
-body:has(.map-page) .app-shell { padding-bottom: 0; }
-body:has(.map-page) .bottom-nav { display: none; }
-body:has(.map-page) .topbar { display: none; }
 .badge { border-radius: 999px; display: inline-block; font-size: .72rem; font-weight: 800; padding: 5px 8px; }
 .badge-satellite { background: #ffead1; color: #814400; }
 .primary, .secondary { border: 0; border-radius: 12px; cursor: pointer; display: inline-flex; font-weight: 800; justify-content: center; min-height: 48px; padding: 13px 16px; text-decoration: none; }
@@ -346,12 +343,13 @@ body:has(.map-page) .topbar { display: none; }
 .area-close-point { cursor: pointer; pointer-events: auto !important; }
 .measurement-label-marker { background: transparent; border: 0; }
 .measurement-label-marker { cursor: pointer; height: 0 !important; overflow: visible !important; pointer-events: auto !important; width: 0 !important; }
-.measurement-label-marker span { align-items: center; background: rgba(255,255,255,.96); border: 1.7px solid #172322; border-radius: 9px 6px 11px 7px; box-shadow: 2px 2px 0 rgba(23,35,34,.25); color: #172322; display: inline-flex; font-size: .78rem; font-weight: 900; gap: 10px; justify-content: center; left: 0; min-height: 34px; padding: 6px 7px 6px 11px; position: absolute; text-align: center; top: 0; transform: translateX(-50%) rotate(-.6deg); white-space: nowrap; width: max-content; }
+.measurement-label-marker span { align-items: center; background: rgba(255,255,255,.96); border: 1.7px solid #172322; border-radius: 9px 6px 11px 7px; box-shadow: 2px 2px 0 rgba(23,35,34,.25); color: #172322; display: inline-flex; font-size: .78rem; font-weight: 900; gap: 10px; justify-content: flex-start; left: 0; min-height: 34px; padding: 6px 7px 6px 11px; position: absolute; text-align: center; top: 0; white-space: nowrap; width: max-content; }
 .measurement-label-marker span::after { border: 1px solid rgba(23,35,34,.36); border-radius: 7px 10px 6px 11px; content: ""; inset: 2px -3px -2px 2px; pointer-events: none; position: absolute; }
-.measurement-label-marker em { font-style: normal; min-width: 0; white-space: nowrap; }
+.measurement-label-marker em { flex: 0 0 auto; font-style: normal; min-width: max-content; white-space: nowrap; }
 .measurement-label-marker b { align-items: center; background: transparent; border: 1.5px solid #d9482f; border-radius: 48% 52% 45% 55%; color: #b72d1f; cursor: pointer; display: inline-flex; flex: 0 0 26px; font-family: "Comic Sans MS", "Bradley Hand", cursive; font-size: 1rem; height: 26px; justify-content: center; line-height: 1; pointer-events: auto; touch-action: manipulation; transform: rotate(.8deg); user-select: none; }
 .measurement-label-marker b.measurement-confirm { border-color: #177447; color: #17643d; cursor: pointer; transform: rotate(-.8deg); }
-.area-measurement-label-marker span { transform: translate(-50%, calc(-100% - 10px)) rotate(-.6deg); }
+.measurement-label-right span { transform: translate(18px,-50%) rotate(-.6deg); }
+.measurement-label-left span { transform: translate(calc(-100% - 18px),-50%) rotate(-.6deg); }
 .movement-arrow-marker span { color: #fff; display: block; filter: drop-shadow(0 0 2px #65150d) drop-shadow(0 1px 1px #65150d); font-size: 25px; font-weight: 900; height: 24px; line-height: 24px; text-align: center; transform-origin: center; width: 24px; }
 .wind-arrow-direction { align-items: center; display: flex; height: 26px; justify-content: center; transform-origin: center; width: 26px; }
 .wind-arrow-flow { align-items: center; animation: wind-arrow-flow 1.4s linear infinite; display: flex; height: 26px; justify-content: center; width: 26px; }
@@ -387,9 +385,6 @@ body:has(.map-page) .topbar { display: none; }
 .map-data-kind-community { color: #176f96; }
 .emergency-actions { display: grid; gap: 12px; }
 .emergency-call { background: #a9261b; border-radius: 14px; color: white; font-size: 1.2rem; font-weight: 900; padding: 18px; text-align: center; text-decoration: none; }
-@media (min-width: 760px) {
-  .bottom-nav { border: 1px solid var(--line); border-radius: 18px 18px 0 0; left: 50%; max-width: 600px; transform: translateX(-50%); }
-}
 @media (max-width: 900px) {
   .map .leaflet-control-attribution { right: 12px; }
 }
