@@ -54,6 +54,9 @@ type LoadState =
   | { status: "loading"; incidents: Incident[] }
   | { status: "ready"; incidents: Incident[]; fetchedAt: string; partial: boolean }
   | { status: "error"; incidents: Incident[]; message: string };
+type MapLoadNotice =
+  | { kind: "hidden" | "searching" | "slow" | "empty" | "error" | "zoom" }
+  | { kind: "success"; count: number };
 type WindLoadState =
   | { status: "idle"; observations: WindObservation[] }
   | { status: "loading"; observations: WindObservation[] }
@@ -139,6 +142,7 @@ export function MapExperience() {
   const [refreshRevision, setRefreshRevision] = useState(0);
   const firmsRecoveryAttemptsRef = useRef(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [mapLoadNotice, setMapLoadNotice] = useState<MapLoadNotice>({ kind: "hidden" });
   const [nextRefreshAt, setNextRefreshAt] = useState(() => Date.now() + 10 * 60_000);
   const [clock, setClock] = useState(() => Date.now());
   const [timelineOffsetHours, setTimelineOffsetHours] = useState(0);
@@ -687,7 +691,11 @@ export function MapExperience() {
     const controller = new AbortController();
     let recoveryTimeout: number | undefined;
     let loadTimeout: number | undefined;
+    let noticeTimeout: number | undefined;
+    let slowNoticeTimeout: number | undefined;
     setIsRefreshing(true);
+    setMapLoadNotice({ kind: "searching" });
+    slowNoticeTimeout = window.setTimeout(() => setMapLoadNotice({ kind: "slow" }), 4_000);
     async function loadIncidents() {
       try {
         const requestedDays = Math.min(8, mapPreferences.timelineRangeDays + 1);
@@ -706,8 +714,15 @@ export function MapExperience() {
           zoom: mapView.zoom.toFixed(2),
         });
         const response = await fetch(`/api/incidents/firms?${parameters}`, { cache: "no-store", signal: controller.signal });
-        const payload = await response.json();
+        const payload = await response.json() as {
+          failedSources: string[];
+          fetchedAt: string;
+          incidents: Incident[];
+          message?: string;
+          zoomRequired?: boolean;
+        };
         if (!response.ok) throw new Error(payload.message || tr("La source satellite est indisponible.", "The satellite source is unavailable."));
+        if (slowNoticeTimeout !== undefined) window.clearTimeout(slowNoticeTimeout);
         const refreshedAt = Date.now();
         setState({
           status: "ready",
@@ -718,8 +733,19 @@ export function MapExperience() {
         firmsRecoveryAttemptsRef.current = 0;
         setReferenceTime(refreshedAt);
         setNextRefreshAt(refreshedAt + 10 * 60_000);
+        setMapLoadNotice(payload.zoomRequired
+          ? { kind: "zoom" }
+          : payload.incidents.length > 0
+            ? { kind: "success", count: payload.incidents.length }
+            : { kind: "empty" });
+        noticeTimeout = window.setTimeout(
+          () => setMapLoadNotice({ kind: "hidden" }),
+          payload.zoomRequired ? 4_500 : 3_200,
+        );
       } catch (error) {
         if (controller.signal.aborted) return;
+        if (slowNoticeTimeout !== undefined) window.clearTimeout(slowNoticeTimeout);
+        setMapLoadNotice({ kind: "error" });
         setState((current) => current.incidents.length
           ? current
           : { status: "error", incidents: [], message: error instanceof Error ? error.message : "La source satellite est indisponible." });
@@ -741,7 +767,9 @@ export function MapExperience() {
     return () => {
       controller.abort();
       if (loadTimeout !== undefined) window.clearTimeout(loadTimeout);
+      if (noticeTimeout !== undefined) window.clearTimeout(noticeTimeout);
       if (recoveryTimeout !== undefined) window.clearTimeout(recoveryTimeout);
+      if (slowNoticeTimeout !== undefined) window.clearTimeout(slowNoticeTimeout);
     };
   }, [mapPreferences.timelineRangeDays, mapView.east, mapView.north, mapView.south, mapView.west, mapView.zoom, refreshRevision, tr]);
 
@@ -1165,6 +1193,63 @@ export function MapExperience() {
         windUnit={mapPreferences.windUnit}
         windObservations={windState.observations}
       />
+      {mapLoadNotice.kind !== "hidden" && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-[480] w-[min(330px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 max-[520px]:top-[46%]"
+          role="status"
+        >
+          <div className="flex min-h-[70px] items-center gap-3 rounded-[18px_15px_20px_16px] border-[1.5px] border-[rgba(23,35,34,.68)] bg-[rgba(255,255,255,.02)] px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,.42),3px_4px_0_rgba(23,35,34,.13)] backdrop-blur-sm backdrop-saturate-150 [transform:rotate(-.25deg)]">
+            <span className={`relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[48%_52%_44%_56%] border-[1.7px] bg-white/65 shadow-[inset_0_0_12px_rgba(255,255,255,.65)] ${
+              mapLoadNotice.kind === "error" ? "border-[#b8322a]"
+                : mapLoadNotice.kind === "success" ? "border-[#21734d]"
+                  : "border-[var(--fire)]"
+            }`}>
+              <Image
+                alt=""
+                aria-hidden
+                className={`size-8 object-contain ${mapLoadNotice.kind === "searching" || mapLoadNotice.kind === "slow" ? "animate-pulse" : ""}`}
+                height={32}
+                src="/logo.png"
+                width={32}
+              />
+            </span>
+            <span className="grid min-w-0 gap-1 text-left leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,.8)]">
+              <strong className="text-[.86rem]">
+                {mapLoadNotice.kind === "searching" && tr("Recherche dans cette zone…", "Searching this area…")}
+                {mapLoadNotice.kind === "slow" && tr("La source satellite prend plus de temps…", "The satellite source is taking longer…")}
+                {mapLoadNotice.kind === "success" && tr(
+                  `${mapLoadNotice.count} détection${mapLoadNotice.count > 1 ? "s" : ""} trouvée${mapLoadNotice.count > 1 ? "s" : ""}`,
+                  `${mapLoadNotice.count} detection${mapLoadNotice.count === 1 ? "" : "s"} found`,
+                )}
+                {mapLoadNotice.kind === "empty" && tr("Aucune détection récente trouvée", "No recent detections found")}
+                {mapLoadNotice.kind === "zoom" && tr("Rapprochez la carte", "Zoom in on the map")}
+                {mapLoadNotice.kind === "error" && tr("Source temporairement indisponible", "Source temporarily unavailable")}
+              </strong>
+              <small className="text-[.7rem] leading-[1.35] text-white/85">
+                {mapLoadNotice.kind === "searching" && tr("Interrogation des capteurs VIIRS.", "Querying VIIRS sensors.")}
+                {mapLoadNotice.kind === "slow" && tr("La carte reste utilisable pendant l’attente.", "You can keep using the map while waiting.")}
+                {mapLoadNotice.kind === "success" && tr("La carte vient d’être actualisée.", "The map has just been updated.")}
+                {mapLoadNotice.kind === "empty" && tr("Cela ne garantit pas l’absence de feu.", "This does not guarantee that there is no fire.")}
+                {mapLoadNotice.kind === "zoom" && tr("Zoomez pour charger les détections de la région.", "Zoom in to load detections for this region.")}
+                {mapLoadNotice.kind === "error" && tr("Les anciens points restent affichés lorsqu’ils existent.", "Previous points remain visible when available.")}
+              </small>
+              {mapLoadNotice.kind === "error" && (
+                <button
+                  className="pointer-events-auto mt-1 w-fit rounded-[8px_6px_9px_7px] border border-[#172322] bg-white px-3 py-1 text-[.7rem] font-bold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.18)] [text-shadow:none]"
+                  onClick={() => {
+                    firmsRecoveryAttemptsRef.current = 0;
+                    setRefreshRevision((revision) => revision + 1);
+                  }}
+                  type="button"
+                >
+                  {tr("Réessayer", "Try again")}
+                </button>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
       <MapSearch
         onMobileOpenChange={setMobileSearchOpen}
         onSelect={(location) => {

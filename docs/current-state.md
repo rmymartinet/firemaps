@@ -436,5 +436,10 @@ une livraison garantie nécessite toujours :
   résultat et affiche le logo animé avec « Recherche dans cette zone… ». La
   carte reste donc utilisable et l’état de chargement demeure immédiatement
   visible sans ajouter de fenêtre bloquante.
+- Un panneau compact et non bloquant apparaît aussi au centre de la carte
+  pendant la récupération. Il distingue la recherche, une attente supérieure à
+  quatre secondes, le nombre de détections reçues, l’absence de détection, le
+  besoin de zoomer et l’indisponibilité de la source. Dans ce dernier cas, une
+  nouvelle tentative reste accessible sans empêcher de déplacer la carte.
 - Le cache FIRMS est séparé par emprise et par période. Une réponse ancienne
   d’une autre région ne peut donc pas être affichée comme repli local.
