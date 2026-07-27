@@ -118,9 +118,11 @@ body:has(.map-page) .topbar { display: none; }
   font-family: var(--font-gochi-hand), "Comic Sans MS", cursive;
   font-synthesis: none;
 }
-.map-markers-small .fire-detection-target, .map-markers-small .fire-cluster-disc { transform: scale(.78); }
-.map-markers-large .fire-detection-target, .map-markers-large .fire-cluster-disc { transform: scale(1.22); }
-.map-halos-low .thermal-footprint { opacity: .48; }
+.map-markers-small .fire-detection-spark { transform: scale(.78); transform-origin: center; }
+.map-markers-large .fire-detection-spark { transform: scale(1.22); transform-origin: center; }
+.map-markers-small .fire-cluster-center { transform: translate(-50%,-50%) scale(.78); }
+.map-markers-large .fire-cluster-center { transform: translate(-50%,-50%) scale(1.22); }
+.map-halos-low .thermal-footprint { opacity: .5; }
 .map-halos-high .thermal-footprint { opacity: 1; }
 .map-tooltips-hidden .leaflet-tooltip { display: none !important; }
 .map-reduce-motion *, .map-reduce-motion *::before, .map-reduce-motion *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
@@ -288,22 +290,18 @@ body:has(.map-page) .topbar { display: none; }
 .legend-fresh { background: #d92f1e; }
 .legend-aging { background: #dc741b; }
 .legend-stale { background: #666c69; }
-.thermal-footprint { mix-blend-mode: screen; pointer-events: none; }
-.thermal-footprint-outer { filter: blur(7px); }
-.thermal-footprint-middle { filter: blur(3px); }
-.thermal-footprint-core { filter: drop-shadow(0 0 6px rgba(255,199,72,.9)); }
 .thermal-detection-cluster { filter: drop-shadow(0 0 5px rgba(255,122,48,.95)) drop-shadow(0 1px 3px rgba(54,17,8,.78)); }
+.thermal-footprint { transform-box: fill-box; transform-origin: center; }
+.thermal-footprint-outer { filter: blur(7px) drop-shadow(0 0 12px rgba(255,0,43,.72)); }
+.thermal-footprint-middle { filter: blur(3px) drop-shadow(0 0 8px rgba(255,0,43,.9)); }
+.thermal-footprint-core { filter: blur(.7px) drop-shadow(0 0 5px #ff002b) drop-shadow(0 0 10px rgba(255,0,43,.9)); }
 .fire-detection-icon, .fire-cluster-icon { background: transparent; border: 0; }
-.fire-detection-target { align-items: center; background: radial-gradient(circle, color-mix(in srgb, var(--fire-point-color) 28%, transparent) 0 34%, transparent 68%); border: 1px solid color-mix(in srgb, var(--fire-point-color) 72%, transparent); border-radius: 50%; box-shadow: 0 0 0 1px rgba(30,0,0,.5), 0 0 9px color-mix(in srgb, var(--fire-point-color) 72%, transparent), inset 0 0 8px color-mix(in srgb, var(--fire-point-color) 42%, transparent); display: flex; height: 100%; justify-content: center; position: relative; width: 100%; }
-.fire-detection-target::before { border: 1px solid color-mix(in srgb, var(--fire-point-color) 78%, white 12%); border-radius: 50%; content: ""; inset: 24%; position: absolute; }
-.fire-detection-crosshair, .fire-cluster-crosshair { background: currentColor; height: 100%; left: 50%; position: absolute; top: 0; transform: translateX(-50%); width: 1px; }
-.fire-detection-crosshair::before, .fire-cluster-crosshair::before { background: currentColor; content: ""; height: 1px; left: 50%; position: absolute; top: 50%; transform: translate(-50%,-50%); width: 100%; }
-.fire-detection-crosshair { color: color-mix(in srgb, var(--fire-point-color) 68%, transparent); }
-.fire-detection-core, .fire-cluster-core { background: #fff3e5; border: 2px solid #ff321f; border-radius: 50%; box-shadow: 0 0 3px #fff, 0 0 8px #ff2418; height: 6px; position: relative; width: 6px; z-index: 1; }
-.fire-cluster-icon { background: transparent; border: 0; }
-.fire-cluster-disc { align-items: center; background: radial-gradient(circle, rgba(255,55,28,.7) 0 12%, rgba(201,12,19,.4) 32%, rgba(93,0,8,.18) 56%, transparent 72%); border: 1.5px solid rgba(255,50,31,.9); border-radius: 50%; box-shadow: 0 0 0 1px rgba(70,0,6,.8), 0 0 15px rgba(255,28,20,.78), inset 0 0 12px rgba(255,42,20,.52); color: rgba(255,91,66,.62); display: flex; height: 100%; justify-content: center; position: relative; width: 100%; }
-.fire-cluster-disc::before { border: 1px solid rgba(255,124,92,.7); border-radius: 50%; content: ""; inset: 21%; position: absolute; }
-.fire-cluster-count { background: rgba(19,5,6,.88); border: 1px solid rgba(255,76,52,.75); border-radius: 8px; bottom: -5px; color: #fff; font-size: .56rem; font-weight: 900; line-height: 1; min-width: 17px; padding: 3px 4px; position: absolute; right: -5px; text-align: center; z-index: 2; }
+.fire-detection-spark { display: block; height: 100%; position: relative; width: 100%; }
+.fire-detection-spark::before { background: var(--fire-point-color); border: 1.5px solid rgba(255,255,255,.92); border-radius: 50%; box-shadow: 0 0 0 1px rgba(119,0,24,.9), 0 1px 2px rgba(30,0,8,.45); content: ""; height: 10px; left: 50%; position: absolute; top: 50%; transform: translate(-50%,-50%); width: 10px; }
+.fire-detection-spark::after { background: #fff; border-radius: 50%; box-shadow: 0 0 2px rgba(255,255,255,.9); content: ""; height: 3px; left: 50%; position: absolute; top: 50%; transform: translate(-50%,-50%); width: 3px; }
+.fire-cluster-center { background: var(--fire-point-color); border: 1.5px solid rgba(255,255,255,.95); border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(119,0,24,.92), 0 1px 3px rgba(30,0,8,.5); display: block; height: 13px; left: 50%; position: absolute; top: 50%; transform: translate(-50%,-50%); width: 13px; }
+.fire-cluster-center::before { background: #fff; border-radius: 50%; box-shadow: 0 0 2px rgba(255,255,255,.95); content: ""; height: 3px; left: 50%; position: absolute; top: 50%; transform: translate(-50%,-50%); width: 3px; }
+.fire-cluster-count { background: rgba(31,3,9,.92); border: 1px solid rgba(255,35,67,.85); border-radius: 8px; color: #fff; font-size: .56rem; font-weight: 900; left: 9px; line-height: 1; min-width: 17px; padding: 3px 4px; position: absolute; text-align: center; top: 8px; z-index: 2; }
 .effis-vector-perimeter { filter: drop-shadow(0 1px 1px rgba(74,20,14,.22)); }
 .legend-activity { background: repeating-linear-gradient(35deg, rgba(214,72,45,.18) 0 4px, #b73322 4px 7px); border: 1px solid #a82d20; display: inline-block; height: 12px; width: 16px; }
 .legend-area { background: rgba(153, 38, 28, .65); border: 1px solid #7f1d16; display: inline-block; height: 12px; width: 16px; }
@@ -396,6 +394,17 @@ body:has(.map-page) .topbar { display: none; }
   .map .leaflet-control-attribution { right: 12px; }
 }
 @media (max-width: 520px) {
+  .thermal-footprint-outer { filter: blur(5px) drop-shadow(0 0 8px rgba(255,0,43,.68)); transform: scale(.58); }
+  .thermal-footprint-middle { filter: blur(2px) drop-shadow(0 0 6px rgba(255,0,43,.86)); transform: scale(.66); }
+  .thermal-footprint-core { transform: scale(.78); }
+  .map-page .fire-detection-spark { transform: scale(.82); transform-origin: center; }
+  .map-page .fire-cluster-center { transform: translate(-50%,-50%) scale(.82); }
+  .map-page.map-markers-small .fire-detection-spark { transform: scale(.68); }
+  .map-page.map-markers-small .fire-cluster-center { transform: translate(-50%,-50%) scale(.68); }
+  .map-page.map-markers-large .fire-detection-spark { transform: scale(1); }
+  .map-page.map-markers-large .fire-cluster-center { transform: translate(-50%,-50%) scale(1); }
+  .fire-detection-spark::before { height: 8px; width: 8px; }
+  .fire-detection-spark::after { height: 2.5px; width: 2.5px; }
   .measurement-label-marker span {
     box-sizing: border-box;
     gap: 6px;

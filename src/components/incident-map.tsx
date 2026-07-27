@@ -95,9 +95,9 @@ function pointOpacity(observedAt: string, referenceTime: number): number {
 
 function activityColor(observedAt: string, referenceTime: number): string {
   const hours = Math.max(0, (referenceTime - new Date(observedAt).getTime()) / 3_600_000);
-  if (hours <= 3) return "#ff3b1f";
-  if (hours <= 6) return "#f47a20";
-  return "#a84a32";
+  if (hours <= 3) return "#ff002b";
+  if (hours <= 6) return "#ff1234";
+  return "#ed1b3a";
 }
 
 function pointRadius(incident: Incident): number {
@@ -239,7 +239,6 @@ function DetectionLayers({
   referenceTime,
   selectedLocation,
   showEffis,
-  showThermalFootprints,
   windObservations,
 }: {
   areaUnit: "ha" | "km2";
@@ -249,7 +248,6 @@ function DetectionLayers({
   referenceTime: number;
   selectedLocation: GeocodingSuggestion | null;
   showEffis: boolean;
-  showThermalFootprints: boolean;
   windObservations: WindObservation[];
 }) {
   const map = useMap();
@@ -325,7 +323,7 @@ function DetectionLayers({
           </Polygon>
         );
       })}
-      {showThermalFootprints && clusters.map((cluster) => {
+      {clusters.map((cluster) => {
         const newest = cluster.incidents.reduce((current, incident) =>
           incident.observedAt > current.observedAt ? incident : current,
         );
@@ -339,13 +337,14 @@ function DetectionLayers({
           82,
           34 + Math.log2(cluster.incidents.length + 1) * 7 + Math.log10(maximumPower + 1) * 6,
         );
+
         return (
           <Fragment key={`thermal-footprint-${cluster.id}`}>
             <CircleMarker
               className="thermal-footprint thermal-footprint-outer"
               center={[cluster.latitude, cluster.longitude]}
-              fillColor="#c92836"
-              fillOpacity={0.25 * strength}
+              fillColor="#ff002b"
+              fillOpacity={0.22 * strength}
               interactive={false}
               pathOptions={{ stroke: false }}
               radius={radius}
@@ -353,7 +352,7 @@ function DetectionLayers({
             <CircleMarker
               className="thermal-footprint thermal-footprint-middle"
               center={[cluster.latitude, cluster.longitude]}
-              fillColor="#ff5345"
+              fillColor="#ff1234"
               fillOpacity={0.38 * strength}
               interactive={false}
               pathOptions={{ stroke: false }}
@@ -362,8 +361,8 @@ function DetectionLayers({
             <CircleMarker
               className="thermal-footprint thermal-footprint-core"
               center={[cluster.latitude, cluster.longitude]}
-              fillColor="#ffd56a"
-              fillOpacity={0.7 * strength}
+              fillColor="#ffccd5"
+              fillOpacity={0.78 * strength}
               interactive={false}
               pathOptions={{ stroke: false }}
               radius={Math.max(6, radius * 0.22)}
@@ -480,7 +479,7 @@ function DetectionLayers({
           const markerSize = Math.min(52, 34 + Math.log2(cluster.incidents.length) * 3.5);
           const clusterIcon = divIcon({
             className: "fire-cluster-icon",
-            html: `<span class="fire-cluster-disc"><span class="fire-cluster-crosshair"></span><span class="fire-cluster-core"></span><span class="fire-cluster-count">${cluster.incidents.length}</span></span>`,
+            html: `<span class="fire-cluster-center" style="--fire-point-color:${activityColor(newest.observedAt, referenceTime)}"><span class="fire-cluster-count">${cluster.incidents.length}</span></span>`,
             iconAnchor: [markerSize / 2, markerSize / 2],
             iconSize: [markerSize, markerSize],
           });
@@ -508,7 +507,7 @@ function DetectionLayers({
         const markerSize = Math.round(pointRadius(incident) * 2 + 12);
         const incidentIcon = divIcon({
           className: "fire-detection-icon",
-          html: `<span class="fire-detection-target" style="--fire-point-color:${activityColor(incident.observedAt, referenceTime)}"><span class="fire-detection-crosshair"></span><span class="fire-detection-core"></span></span>`,
+          html: `<span class="fire-detection-spark" style="--fire-point-color:${activityColor(incident.observedAt, referenceTime)}"></span>`,
           iconAnchor: [markerSize / 2, markerSize / 2],
           iconSize: [markerSize, markerSize],
         });
@@ -1335,7 +1334,6 @@ export function IncidentMap({
   showEffis,
   showForest,
   showForestWeather,
-  showThermalFootprints,
   showHistory,
   showNearbyPlaces,
   showWind,
@@ -1378,7 +1376,6 @@ export function IncidentMap({
   showEffis: boolean;
   showForest: boolean;
   showForestWeather: boolean;
-  showThermalFootprints: boolean;
   showHistory: boolean;
   showNearbyPlaces: boolean;
   showWind: boolean;
@@ -1493,7 +1490,6 @@ export function IncidentMap({
         referenceTime={referenceTime}
         selectedLocation={selectedLocation}
         showEffis={showEffis}
-        showThermalFootprints={showThermalFootprints}
         windObservations={windObservations}
       />
       {showWind && <WindLayer observations={windObservations} unit={windUnit} />}

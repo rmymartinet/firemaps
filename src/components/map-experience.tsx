@@ -1032,7 +1032,6 @@ export function MapExperience() {
         showAirQuality={showAirQuality}
         showForest={showForest}
         showForestWeather={showForestWeather}
-        showThermalFootprints
         showHistory={showHistory}
         showNearbyPlaces={showNearbyPlaces}
         showWind={showWind}
