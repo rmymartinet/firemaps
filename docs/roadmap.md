@@ -44,22 +44,48 @@ Audit accessibilité/Lighthouse, PNG PWA, tests E2E mobile, budget performance, 
 
 ## Lot 7 — Lisibilité, performance et validation utilisateur
 
-1. Regrouper les attributions cartographiques et les fournisseurs de données
+1. ✅ Regrouper les attributions cartographiques et les fournisseurs de données
    derrière un accès « Sources » discret, tout en conservant les mentions
    obligatoires immédiatement accessibles.
-2. Ajouter des tests visuels responsives pour détecter automatiquement les
+2. 🟡 Ajouter des tests visuels responsives pour détecter automatiquement les
    chevauchements sur mobile, tablette et petits écrans d’ordinateur.
-3. Afficher partout une fraîcheur compréhensible, par exemple « Mis à jour il y
+   Le scénario Playwright et ses trois formats d’écran sont présents ; sa
+   stabilisation dans l’environnement local reste à terminer.
+3. ✅ Afficher partout une fraîcheur compréhensible, par exemple « Mis à jour il y
    a 18 min », sans présenter une détection satellite comme une confirmation.
-4. Renforcer la distinction visuelle entre les détections satellite, les
+4. ✅ Renforcer la distinction visuelle entre les détections satellite, les
    périmètres officiels et les signalements citoyens.
-5. Conserver une légende miniature directement sur la carte pour expliquer les
+5. ✅ Conserver une légende miniature directement sur la carte pour expliquer les
    halos, couleurs et niveaux de confiance sans ouvrir un panneau complet.
-6. Charger à la demande les couches secondaires et leurs données afin de
+6. ✅ Charger à la demande les couches secondaires et leurs données afin de
    réduire le temps d’affichage et la consommation réseau sur mobile.
-7. Tester le parcours complet avec des utilisateurs : repérer une zone,
+7. 🟡 Tester le parcours complet avec des utilisateurs : repérer une zone,
    sélectionner un point ou tracer une limite, publier un signalement, ajouter
    une preuve puis retrouver et gérer sa contribution.
+   Le protocole est prêt dans
+   [`product/usability-test-plan.md`](product/usability-test-plan.md) ; les
+   sessions avec de vrais utilisateurs restent à conduire.
+
+## Lot 8 — Stabilisation avant nouvelles fonctionnalités
+
+Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
+
+1. Stabiliser et exécuter les scénarios Playwright sur mobile, tablette et
+   ordinateur.
+2. Faire tester le parcours complet par au moins cinq personnes selon le
+   protocole prévu, puis corriger d’abord les blocages observés plusieurs fois.
+3. Vérifier toutes les interactions tactiles sur de vrais appareils iPhone et
+   Android, notamment les tracés, fenêtres, boutons de validation et zones
+   proches des bords de l’écran.
+4. Renforcer les états de réseau lent, hors connexion, délai dépassé et API
+   indisponible, sans jamais présenter une absence de réponse comme une absence
+   de feu.
+5. Réaliser une passe d’accessibilité : clavier, focus, lecteurs d’écran,
+   contrastes, tailles tactiles et réduction des animations.
+6. Mesurer puis optimiser les performances lorsque beaucoup de signaux sont
+   visibles simultanément, en particulier sur les téléphones modestes.
+7. Vérifier dans tous les écrans que les détections satellite, informations
+   officielles et contributions citoyennes restent clairement différenciées.
 
 # Après la vue opérationnelle
 
