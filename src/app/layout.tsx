@@ -12,10 +12,10 @@ const gochiHand = Gochi_Hand({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Sentinel", template: "%s · Sentinel" },
+  title: { default: "Firemaps", template: "%s · Firemaps" },
   description: "Informations sourcées et prudentes pendant les incendies.",
-  applicationName: "Sentinel",
-  appleWebApp: { capable: true, title: "Sentinel", statusBarStyle: "black-translucent" },
+  applicationName: "Firemaps",
+  appleWebApp: { capable: true, title: "Firemaps", statusBarStyle: "black-translucent" },
   icons: {
     icon: [{ url: "/favicon.png", sizes: "1024x1024", type: "image/png" }],
     shortcut: "/favicon.png",

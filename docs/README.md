@@ -1,4 +1,4 @@
-# Documentation Sentinel
+# Documentation Firemaps
 
 Cette documentation décrit uniquement ce qui est décidé ou présent dans le dépôt.
 

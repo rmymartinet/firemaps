@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Sentinel — informations incendies",
-    short_name: "Sentinel",
+    name: "Firemaps — informations incendies",
+    short_name: "Firemaps",
     description: "Informations sourcées et prudentes pendant les incendies.",
     start_url: "/",
     display: "standalone",

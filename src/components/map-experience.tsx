@@ -167,6 +167,7 @@ export function MapExperience() {
   const [mapPreferences, setMapPreferences] = useState<MapPreferences>(defaultMapPreferences);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  const [loadingScreenLeaving, setLoadingScreenLeaving] = useState(false);
   const loadingStartedAt = useRef(Date.now());
   const baseMapMenuRef = useRef<HTMLDivElement>(null);
   const baseMapButtonRef = useRef<HTMLButtonElement>(null);
@@ -333,18 +334,24 @@ export function MapExperience() {
 
   useEffect(() => {
     if (state.status === "loading" || !preferencesReady) return;
-    const minimumDisplayTime = 700;
+    const minimumDisplayTime = 2_300;
     const remainingTime = Math.max(0, minimumDisplayTime - (Date.now() - loadingStartedAt.current));
-    const timeout = window.setTimeout(() => setShowLoadingScreen(false), remainingTime);
+    const timeout = window.setTimeout(() => setLoadingScreenLeaving(true), remainingTime);
     return () => window.clearTimeout(timeout);
   }, [preferencesReady, state.status]);
 
   useEffect(() => {
     const maximumLoadingTime = window.setTimeout(() => {
-      setShowLoadingScreen(false);
+      setLoadingScreenLeaving(true);
     }, 4_500);
     return () => window.clearTimeout(maximumLoadingTime);
   }, []);
+
+  useEffect(() => {
+    if (!loadingScreenLeaving) return;
+    const timeout = window.setTimeout(() => setShowLoadingScreen(false), 680);
+    return () => window.clearTimeout(timeout);
+  }, [loadingScreenLeaving]);
 
   useEffect(() => {
     if (!preferencesReady) return;
@@ -919,12 +926,12 @@ export function MapExperience() {
         <div
           aria-label="Chargement de la carte"
           aria-live="polite"
-          className="loading-screen-failsafe fixed inset-0 z-[5000] grid place-items-center bg-white"
+          className={`loading-screen-failsafe fixed inset-0 z-[5000] grid place-items-center bg-white ${loadingScreenLeaving ? "loading-screen-leaving" : ""}`}
           role="status"
         >
           <div className="grid place-items-center gap-5">
             <video
-              aria-label="Logo Sentinel animé"
+              aria-label="Logo Firemaps animé"
               autoPlay
               className="size-[clamp(170px,34vw,280px)] object-contain"
               loop
@@ -1520,7 +1527,7 @@ export function MapExperience() {
         </button>
         </div>
         </div>
-        <div className="map-primary-tools relative grid rotate-[.25deg] gap-1 rounded-[27px_24px_29px_25px] border-2 border-white/95 bg-transparent p-1 shadow-[1px_1px_0_rgba(23,35,34,.42),0_0_5px_rgba(23,35,34,.18)] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[inherit] after:border after:border-white/60 after:content-[''] max-[520px]:gap-[9px] max-[520px]:rotate-0 max-[520px]:rounded-full max-[520px]:border-0 max-[520px]:p-0 max-[520px]:shadow-none max-[520px]:after:hidden">
+        <div className="map-primary-tools relative grid rotate-[.45deg] gap-[6px] rounded-[29px_23px_31px_25px/26px_31px_24px_29px] border-2 border-white/90 bg-transparent p-[7px] shadow-[1px_1px_0_rgba(23,35,34,.42),0_0_5px_rgba(23,35,34,.18)] after:pointer-events-none after:absolute after:inset-[1px_-4px_-3px_2px] after:rotate-[.35deg] after:rounded-[31px_25px_28px_23px/24px_30px_25px_31px] after:border after:border-white/50 after:content-[''] max-[520px]:gap-[9px] max-[520px]:rotate-0 max-[520px]:rounded-full max-[520px]:border-0 max-[520px]:p-0 max-[520px]:shadow-none max-[520px]:after:hidden">
         <button
           aria-label="Me localiser"
           className="sketch-tool-button locate-tool !hidden max-[520px]:!flex"

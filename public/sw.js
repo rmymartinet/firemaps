@@ -1,4 +1,4 @@
-const CACHE_NAME = "sentinel-shell-v4";
+const CACHE_NAME = "firemaps-shell-v5";
 const ALERT_CONFIG_URL = "/__sentinel_alert_config__";
 const APP_SHELL = ["/logo.png", "/favicon.png"];
 self.addEventListener("install", (event) => {
@@ -84,7 +84,7 @@ self.addEventListener("periodicsync", (event) => {
 
 self.addEventListener("push", (event) => {
   const payload = event.data ? event.data.json() : {};
-  event.waitUntil(self.registration.showNotification(payload.title || "Alerte Sentinel", {
+  event.waitUntil(self.registration.showNotification(payload.title || "Alerte Firemaps", {
     body: payload.body || "Une nouvelle activité thermique a été détectée.",
     icon: "/icon.svg",
     data: { url: payload.url || "/" },

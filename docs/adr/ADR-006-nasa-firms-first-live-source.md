@@ -5,7 +5,7 @@
 
 ## Contexte
 
-Sentinel doit montrer rapidement où des feux potentiels sont observés en France, sans disposer d’une API nationale unifiée des incendies confirmés.
+Firemaps doit montrer rapidement où des feux potentiels sont observés en France, sans disposer d’une API nationale unifiée des incendies confirmés.
 
 ## Décision
 

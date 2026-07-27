@@ -40,7 +40,7 @@ export function VideoDiscovery() {
     <div className="mx-auto max-w-[900px] px-4 pt-[18px] pb-[30px]">
       <h1 className="my-1 text-[1.65rem] font-bold">Découvrir des vidéos locales</h1>
       <p className="mt-0 leading-normal text-muted">
-        Sentinel recherche des liens publics TikTok et Instagram associés à un lieu. Aucun résultat n’est publié
+        Firemaps recherche des liens publics TikTok et Instagram associés à un lieu. Aucun résultat n’est publié
         automatiquement : vérifiez toujours la date, le lieu et le contenu.
       </p>
       <p className="rounded-xl border border-[#e9a177] bg-[#fff1e8] p-[13px] leading-[1.45] text-[#692416]">

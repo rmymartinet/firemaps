@@ -11,7 +11,7 @@ Fournisseur : NASA LANCE, Fire Information for Resource Management System.
 - Précision : pixel VIIRS nominal de 375 m ; le point est le centre d’un pixel contenant une anomalie, pas la position exacte d’une flamme.
 - Limite API annoncée : 5 000 transactions par fenêtre de 10 minutes ; une requête peut compter plusieurs transactions.
 - Format utilisé : CSV, normalisé vers `Incident` avec `sourceType: satellite`.
-- Horodatages : `observedAt` vient de `acq_date`/`acq_time` FIRMS ; `updatedAt` reste égal à l’observation faute d’heure de révision fournisseur ; `ingestedAt` conserve la synchronisation Sentinel.
+- Horodatages : `observedAt` vient de `acq_date`/`acq_time` FIRMS ; `updatedAt` reste égal à l’observation faute d’heure de révision fournisseur ; `ingestedAt` conserve la synchronisation Firemaps.
 - Confiance : les signaux FIRMS élevés deviennent `probable`; tous les autres restent `unverified`. Aucun signal satellite ne devient `confirmed`.
 - Résilience : les trois capteurs sont interrogés indépendamment ; un résultat partiel est signalé. Sans clé ou si tous échouent, aucun marqueur n’est affiché et l’indisponibilité est explicite.
 - Conditions : données NASA ouvertes, avec attribution NASA FIRMS ; vérifier les mentions et conditions à chaque évolution du service.
@@ -37,7 +37,7 @@ Fournisseur : European Forest Fire Information System, Commission européenne / 
 - Couche active : `modis.ba.poly.week`, zones des sept derniers jours issues du produit EFFIS MODIS/Sentinel‑2.
 - Couche rejetée pour l’interface : `effis.nrt.ba.poly`. Son regroupement automatique VIIRS produisait de grands blocs pouvant être interprétés à tort comme des périmètres fiables.
 - Fréquence : produit consolidé plus tardif que FIRMS ; EFFIS traite quotidiennement MODIS et peut raffiner certains périmètres avec Sentinel‑2.
-- Usage Sentinel : couche raster transparente, masquée par défaut, activable séparément, opacité 55 %, date courante transmise au paramètre `TIME`.
+- Usage Firemaps : couche raster transparente, masquée par défaut, activable séparément, opacité 55 %, date courante transmise au paramètre `TIME`.
 - Licence : contenu UE sous CC BY 4.0 sauf mention contraire ; attribution EFFIS / Union européenne affichée sur la carte.
 - Limites : périmètre algorithmique et satellitaire, pas périmètre opérationnel confirmé ; feux petits ou récents potentiellement absents ; dépendance directe au WMS ; absence d’état détaillé par tuile dans Leaflet.
 
@@ -49,7 +49,7 @@ Les tests GetMap et WFS/GetFeature limités à la France n’ont pas répondu en
 - Origine : modèles numériques AROME/ARPEGE de Météo-France, et non mesures prises sur place.
 - Variables : vitesse et direction du vent à 10 m, ainsi que rafales, en km/h.
 - Couverture actuelle : grille fixe légère de 20 points sur la métropole et la Corse.
-- Sémantique : la direction fournisseur indique la provenance météorologique ; Sentinel inverse cette valeur de 180°, interpole les quatre points les plus proches sur la zone visible et anime les flèches vers la destination de l’air. La cadence varie relativement avec la vitesse interpolée.
+- Sémantique : la direction fournisseur indique la provenance météorologique ; Firemaps inverse cette valeur de 180°, interpole les quatre points les plus proches sur la zone visible et anime les flèches vers la destination de l’air. La cadence varie relativement avec la vitesse interpolée.
 - Usage : couche désactivée par défaut, chargée uniquement à son activation. Heure du modèle, vitesse et rafales restent accessibles.
 - Cache : réponse réussie mise en cache 15 minutes par le CDN avec tolérance stale de 30 minutes ; erreur non mise en cache.
 - Conditions : données Open-Meteo sous CC BY 4.0 avec attribution. L’accès gratuit annoncé est réservé au non-commercial ; un contrat commercial sera nécessaire si le produit change de cadre.
@@ -80,7 +80,7 @@ Aucune source officielle de confirmation, consigne ou périmètre opérationnel 
 
 ## Portails officiels référencés, sans synchronisation
 
-- FR-Alert : portail national des alertes et consignes. Sentinel fournit un lien direct vers les alertes en cours, mais aucune API publique documentée n’a été validée pour une ingestion automatique.
+- FR-Alert : portail national des alertes et consignes. Firemaps fournit un lien direct vers les alertes en cours, mais aucune API publique documentée n’a été validée pour une ingestion automatique.
 - Géorisques / Météo des forêts : information officielle sur le danger départemental en saison ; il s’agit d’un niveau de danger prévisionnel, pas d’incendies actifs.
 - Annuaire Service-Public.fr : accès aux sites des préfectures et autorités locales.
 
@@ -95,7 +95,7 @@ Ces liens améliorent l’accès aux informations compétentes sans transformer 
 - Quota public : 10 requêtes par seconde et par IP pour l’autocomplétion.
 - Précision : coordonnées du localisant retourné ; elles ne constituent pas une position de l’utilisateur.
 - Résilience : debounce client de 350 ms, timeout serveur de 5 s, erreur visible, aucune mise en cache.
-- Vie privée : texte recherché transmis à Sentinel puis à l’IGN, sans persistance applicative. Les réponses et la sélection restent en mémoire.
+- Vie privée : texte recherché transmis à Firemaps puis à l’IGN, sans persistance applicative. Les réponses et la sélection restent en mémoire.
 - Limites : couverture actuelle forcée à `METROPOLE`; l’outre-mer sera ajouté avec un choix de territoire. La disponibilité n’est pas garantie.
 
 Implémentation : `src/integrations/geoplateforme.ts`, route `/api/geocoding/autocomplete` et `src/components/map-search.tsx`.
@@ -111,7 +111,7 @@ Documenter fournisseur, origine, licence/conditions, format, fréquence, précis
 - Requêtes : une recherche limitée à TikTok et une limitée aux Reels Instagram, combinant le lieu avec feu, incendie, fumée et feu de forêt.
 - Traitement : filtrage strict des domaines, déduplication par URL et présentation dans une file de vérification.
 - Limites : l’index peut être incomplet ou retardé ; le titre, la description et les hashtags ne prouvent ni le lieu ni la date de captation. Une validation humaine reste obligatoire.
-- Données : Sentinel conserve seulement les liens choisis dans le prototype communautaire ; aucune vidéo n’est copiée ou téléchargée.
+- Données : Firemaps conserve seulement les liens choisis dans le prototype communautaire ; aucune vidéo n’est copiée ou téléchargée.
 
 Implémentation : `src/integrations/video-discovery.ts`, route `/api/videos/discover` et page `/videos`.
 # MTG-FRP — EUMETSAT / LSA SAF (retiré de l’interface)

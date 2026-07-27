@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
   try {
     const response = await fetch(endpoint, {
-      headers: { Accept: "application/json", "User-Agent": "Sentinel-FireMap/0.1 (historical-view)" },
+      headers: { Accept: "application/json", "User-Agent": "Firemaps/0.1 (historical-view)" },
       next: { revalidate: 86_400 },
       signal: AbortSignal.timeout(15_000),
     });

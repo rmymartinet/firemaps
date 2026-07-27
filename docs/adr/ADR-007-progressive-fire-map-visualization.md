@@ -13,7 +13,7 @@ Adapter la représentation au zoom : regroupements calculés jusqu’au zoom 11,
 
 ## Alternatives envisagées
 
-Points bruts permanents, bibliothèque de clustering supplémentaire, enveloppes convexes Sentinel présentées comme zones, EFFIS seul.
+Points bruts permanents, bibliothèque de clustering supplémentaire, enveloppes convexes Firemaps présentées comme zones, EFFIS seul.
 
 ## Raisons
 

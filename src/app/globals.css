@@ -93,9 +93,9 @@ body:has(.map-page) .topbar { display: none; }
 .information-accordion.is-open > .information-accordion-content { height: auto; opacity: 1; overflow: visible; padding-bottom: 1.25rem; padding-top: 1rem; }
 .information-dialog { box-shadow: 0 0 0 1px rgba(255,255,255,.9), 2px 2px 0 1px rgba(23,35,34,.42), 0 -8px 32px rgba(0,0,0,.3); transform: rotate(-.08deg); }
 .sketch-modal-panel { background: #fff; border: 2px solid #172322; border-radius: 24px 20px 26px 22px; box-shadow: 0 0 0 1px rgba(255,255,255,.9), 2px 2px 0 1px rgba(23,35,34,.42), 0 -8px 30px rgba(0,0,0,.28); color: #172322; transform: rotate(-.06deg); }
-.top-tool-group { background: transparent; border: 2px solid rgba(255,255,255,.96); border-radius: 27px 24px 29px 25px; box-shadow: 1px 1px 0 rgba(23,35,34,.42), 0 0 5px rgba(23,35,34,.18); display: grid; gap: 4px; padding: 4px; position: relative; transform: rotate(-.35deg); }
-.top-tool-group:nth-child(even) { border-radius: 25px 29px 24px 28px; transform: rotate(.45deg); }
-.top-tool-group::after { border: 1px solid rgba(255,255,255,.58); border-radius: inherit; content: ""; inset: 2px -3px -2px 2px; pointer-events: none; position: absolute; }
+.top-tool-group { background: transparent; border: 2px solid rgba(255,255,255,.9); border-radius: 29px 23px 31px 25px / 26px 31px 24px 29px; box-shadow: 1px 1px 0 rgba(23,35,34,.42), 0 0 5px rgba(23,35,34,.18); display: grid; gap: 6px; padding: 7px; position: relative; transform: rotate(-.55deg); }
+.top-tool-group:nth-child(even) { border-radius: 24px 31px 23px 30px / 30px 24px 31px 25px; transform: rotate(.55deg); }
+.top-tool-group::after { border: 1px solid rgba(255,255,255,.48); border-radius: 31px 25px 28px 23px / 24px 30px 25px 31px; content: ""; inset: 1px -4px -3px 2px; pointer-events: none; position: absolute; transform: rotate(.35deg); }
 .map-top-tools .sketch-tool-button {
   background-color: rgba(255,255,255,.94); background-image: none; border: 1.8px solid #172322; border-radius: 48% 52% 46% 54%; box-shadow: 1px 1px 0 rgba(23,35,34,.45);
   color: #172322; filter: none; height: 42px; text-shadow: none; transform: rotate(-.8deg); width: 42px;
@@ -237,17 +237,15 @@ body:has(.map-page) .topbar { display: none; }
 .quality-fresh { background: #d8f1df; color: #175c2b; }
 .quality-partial, .quality-loading { background: #fff0c7; color: #725000; }
 .loading-message { inset: 0; position: absolute; }
-.loading-message-first { animation: loading-message-first 5s ease-in-out infinite; }
-.loading-message-second { animation: loading-message-second 5s ease-in-out infinite; }
+.loading-message-first { animation: loading-message-first 2.2s ease-in-out forwards; }
+.loading-message-second { animation: loading-message-second 2.2s ease-in-out forwards; }
 @keyframes loading-message-first {
   0%, 42% { opacity: 1; transform: translateY(0); }
-  50%, 92% { opacity: 0; transform: translateY(-3px); }
-  100% { opacity: 1; transform: translateY(0); }
+  58%, 100% { opacity: 0; transform: translateY(-4px); }
 }
 @keyframes loading-message-second {
   0%, 42% { opacity: 0; transform: translateY(3px); }
-  50%, 92% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(3px); }
+  58%, 100% { opacity: 1; transform: translateY(0); }
 }
 .quality-stale { background: #e4e5e4; color: #4f5552; }
 .quality-error { background: #f5d8d5; color: #81251d; }
@@ -480,9 +478,17 @@ body:has(.map-page) .topbar { display: none; }
 }
 
 @keyframes loading-screen-failsafe {
-  0%, 92% { opacity: 1; pointer-events: auto; visibility: visible; }
-  100% { opacity: 0; pointer-events: none; visibility: hidden; }
+  0%, 88% { pointer-events: auto; transform: translateY(0); visibility: visible; }
+  100% { pointer-events: none; transform: translateY(105%); visibility: hidden; }
 }
 .loading-screen-failsafe {
-  animation: loading-screen-failsafe 5s ease-out forwards;
+  animation: loading-screen-failsafe 5.2s cubic-bezier(.65,0,.35,1) forwards;
+  will-change: transform;
+}
+.loading-screen-leaving {
+  animation: loading-screen-exit .65s cubic-bezier(.65,0,.35,1) forwards;
+}
+@keyframes loading-screen-exit {
+  from { transform: translateY(0); }
+  to { transform: translateY(105%); }
 }

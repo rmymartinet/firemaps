@@ -12,7 +12,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="topbar sticky top-0 z-1000 flex h-[58px] items-center justify-between border-b border-line bg-[rgba(255,253,248,.96)] px-4">
         <Link className="flex items-center gap-2 text-[1.12rem] font-extrabold no-underline" href="/">
           <span className="inline-block size-5 rotate-45 rounded-[50%_50%_46%_54%] bg-fire" aria-hidden />
-          Sentinel
+          Firemaps
         </Link>
         <a className="rounded-full bg-[#a9261b] px-[13px] py-2.5 text-[.86rem] font-extrabold text-white no-underline" href="tel:112">Je suis en danger</a>
       </header>

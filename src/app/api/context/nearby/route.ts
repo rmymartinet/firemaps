@@ -57,7 +57,7 @@ nwr["tourism"="camp_site"](around:${radius},${latitude},${longitude});
           headers: {
             Accept: "application/json",
             "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-            "User-Agent": "Sentinel-FireMap/0.1 (public-safety-map)",
+            "User-Agent": "Firemaps/0.1 (public-safety-map)",
           },
           method: "POST",
           signal: AbortSignal.timeout(15_000),
