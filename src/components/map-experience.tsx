@@ -1147,7 +1147,17 @@ export function MapExperience() {
           className={`loading-screen-failsafe fixed inset-0 z-[5000] grid place-items-center bg-white ${loadingScreenLeaving ? "loading-screen-leaving" : ""}`}
           role="status"
         >
-          <div className="grid place-items-center gap-5">
+          <picture aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            <source media="(max-width: 720px)" srcSet="/images/loading_mobile.png" />
+            <img
+              alt=""
+              className="size-full object-cover"
+              decoding="async"
+              fetchPriority="high"
+              src="/images/loading_desktop.png"
+            />
+          </picture>
+          <div className="relative z-10 grid place-items-center gap-5">
             <div className="relative size-[clamp(170px,34vw,280px)]" aria-label={t("mapExperience.animatedFiremapsLogo")}>
               {useSafariLoadingFallback ? (
                 <Image

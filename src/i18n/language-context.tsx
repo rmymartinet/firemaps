@@ -45,7 +45,7 @@ function interpolate(message: string, values: Record<string, string | number>): 
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>("fr");
+  const [language, setLanguageState] = useState<AppLanguage>("en");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
