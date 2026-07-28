@@ -4,8 +4,13 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
+import { iso1A2Code } from "@rapideditor/country-coder";
 import { distanceKm, formatDistance } from "@/domain/distance";
 import { deduplicateSatelliteIncidents } from "@/domain/deduplication";
+import {
+  emergencyNumberForCountry,
+  EU_COUNTRY_CODES,
+} from "@/domain/emergency-numbers";
 import { formatAge } from "@/domain/freshness";
 import { clusterDenseIncidents } from "@/domain/clustering";
 import { summarizeFireActivity } from "@/domain/fire-activity";
@@ -115,7 +120,7 @@ function SketchIcon({ name }: { name: SketchIconName }) {
 
 export function MapExperience() {
   const { data: authSession } = authClient.useSession();
-  const { locale, tr } = useLanguage();
+  const { locale, t } = useLanguage();
   const [state, setState] = useState<LoadState>({ status: "loading", incidents: [] });
   const timeRange = 12;
   const [showWind, setShowWind] = useState(false);
@@ -142,7 +147,7 @@ export function MapExperience() {
   const [refreshRevision, setRefreshRevision] = useState(0);
   const firmsRecoveryAttemptsRef = useRef(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mapLoadNotice, setMapLoadNotice] = useState<MapLoadNotice>({ kind: "hidden" });
+  const [, setMapLoadNotice] = useState<MapLoadNotice>({ kind: "hidden" });
   const [nextRefreshAt, setNextRefreshAt] = useState(() => Date.now() + 10 * 60_000);
   const [clock, setClock] = useState(() => Date.now());
   const [timelineOffsetHours, setTimelineOffsetHours] = useState(0);
@@ -185,6 +190,10 @@ export function MapExperience() {
   const [baseMapMenuOpen, setBaseMapMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [signalSummaryOpen, setSignalSummaryOpen] = useState(false);
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [emergencyCountryOverride, setEmergencyCountryOverride] = useState("");
+  const [emergencyCallConfirmation, setEmergencyCallConfirmation] = useState(false);
+  const [emergencyCopyStatus, setEmergencyCopyStatus] = useState<"idle" | "copied" | "error">("idle");
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [informationOpen, setInformationOpen] = useState(false);
@@ -202,6 +211,7 @@ export function MapExperience() {
   const reportModalPanelRef = useRef<HTMLDivElement>(null);
   const accountModalPanelRef = useRef<HTMLDivElement>(null);
   const informationModalPanelRef = useRef<HTMLDivElement>(null);
+  const emergencyModalPanelRef = useRef<HTMLDivElement>(null);
 
   const closeMobileSheet = (panel: HTMLElement | null, onComplete: () => void) => {
     if (!panel || !window.matchMedia("(max-width: 720px)").matches) {
@@ -348,6 +358,25 @@ export function MapExperience() {
       gsap.killTweensOf(panel);
     };
   }, [informationOpen]);
+
+  useEffect(() => {
+    const panel = emergencyModalPanelRef.current;
+    if (!emergencyOpen || !panel) return;
+    const mobile = window.matchMedia("(max-width: 720px)").matches;
+    gsap.killTweensOf(panel);
+    gsap.fromTo(
+      panel,
+      mobile
+        ? { transformOrigin: "50% 100%", yPercent: 105 }
+        : { scale: 0.82, transformOrigin: "50% 50%", yPercent: 0 },
+      mobile
+        ? { duration: 0.38, ease: "power3.out", yPercent: 0 }
+        : { duration: 0.32, ease: "back.out(1.25)", scale: 1 },
+    );
+    return () => {
+      gsap.killTweensOf(panel);
+    };
+  }, [emergencyOpen]);
 
   useEffect(() => {
     const panel = baseMapMenuRef.current;
@@ -529,7 +558,7 @@ export function MapExperience() {
   };
 
   const deleteCommunityReport = async (reportId: string) => {
-    if (!window.confirm(tr("Supprimer définitivement ce signalement ?", "Permanently delete this report?"))) return;
+    if (!window.confirm(t("mapExperience.permanentlyDeleteThisReport"))) return;
     const report = communityReports.find((item) => item.id === reportId);
     if (report?.storedLocally) {
       const nextReports = communityReports.filter((item) => item.id !== reportId);
@@ -650,7 +679,7 @@ export function MapExperience() {
       ) {
         setSelectedLocation({
           id: shared.get("zone") || "shared-view",
-          label: tr("Vue partagée", "Shared view"),
+          label: t("mapExperience.sharedView"),
           latitude: sharedLatitude,
           longitude: sharedLongitude,
           kind: "pin",
@@ -721,7 +750,7 @@ export function MapExperience() {
           message?: string;
           zoomRequired?: boolean;
         };
-        if (!response.ok) throw new Error(payload.message || tr("La source satellite est indisponible.", "The satellite source is unavailable."));
+        if (!response.ok) throw new Error(payload.message || t("mapExperience.theSatelliteSourceIsUnavailable"));
         if (slowNoticeTimeout !== undefined) window.clearTimeout(slowNoticeTimeout);
         const refreshedAt = Date.now();
         setState({
@@ -771,7 +800,7 @@ export function MapExperience() {
       if (recoveryTimeout !== undefined) window.clearTimeout(recoveryTimeout);
       if (slowNoticeTimeout !== undefined) window.clearTimeout(slowNoticeTimeout);
     };
-  }, [mapPreferences.timelineRangeDays, mapView.east, mapView.north, mapView.south, mapView.west, mapView.zoom, refreshRevision, tr]);
+  }, [mapPreferences.timelineRangeDays, mapView.east, mapView.north, mapView.south, mapView.west, mapView.zoom, refreshRevision, t]);
 
   useEffect(() => {
     if (state.status !== "error") return;
@@ -798,7 +827,7 @@ export function MapExperience() {
       try {
         const response = await fetch("/api/weather/wind", { signal: controller.signal });
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.message || tr("Les données de vent sont indisponibles.", "Wind data is unavailable."));
+        if (!response.ok) throw new Error(payload.message || t("mapExperience.windDataIsUnavailable"));
         windLoadedRef.current = true;
         setWindState({ status: "ready", observations: payload.observations, fetchedAt: payload.fetchedAt });
       } catch (error) {
@@ -806,7 +835,7 @@ export function MapExperience() {
         setWindState({
           status: "error",
           observations: [],
-          message: error instanceof Error ? error.message : tr("Les données de vent sont indisponibles.", "Wind data is unavailable."),
+          message: error instanceof Error ? error.message : t("mapExperience.windDataIsUnavailable"),
         });
       }
     }
@@ -858,17 +887,65 @@ export function MapExperience() {
     [deduplicatedIncidents],
   );
   const dataQuality = state.status === "loading"
-    ? { className: "quality-loading", label: tr("Synchronisation…", "Synchronising…") }
+    ? { className: "quality-loading", label: t("mapExperience.synchronising") }
     : state.status === "error"
-      ? { className: "quality-error", label: tr("Source indisponible", "Source unavailable") }
+      ? { className: "quality-error", label: t("mapExperience.sourceUnavailable") }
       : state.partial
-        ? { className: "quality-partial", label: tr("Résultat partiel", "Partial result") }
+        ? { className: "quality-partial", label: t("mapExperience.partialResult") }
         : providerLatestIncident && referenceTime - new Date(providerLatestIncident.observedAt).getTime() <= 3 * 3_600_000
-          ? { className: "quality-fresh", label: tr("Données récentes", "Recent data") }
-          : { className: "quality-stale", label: tr("Données anciennes", "Older data") };
+          ? { className: "quality-fresh", label: t("mapExperience.recentData") }
+          : { className: "quality-stale", label: t("mapExperience.olderData") };
   const satelliteUpdateLabel = state.status === "ready"
-    ? tr(`Mis à jour ${formatAge(state.fetchedAt, new Date(clock))}`, `Updated ${formatAge(state.fetchedAt, new Date(clock), "en")}`)
+    ? t("mapExperience.updatedAgo", { age: formatAge(state.fetchedAt, new Date(clock), locale === "fr-FR" ? "fr" : "en") })
     : dataQuality.label;
+  const emergencyLocation = selectedLocation ?? mapView;
+  const detectedEmergencyCountryCode = useMemo(
+    () => iso1A2Code([emergencyLocation.longitude, emergencyLocation.latitude]),
+    [emergencyLocation.latitude, emergencyLocation.longitude],
+  );
+  const emergencyCountryCode = emergencyCountryOverride || detectedEmergencyCountryCode || "";
+  const emergencyNumber = emergencyNumberForCountry(emergencyCountryCode);
+  const emergencyCountryNames = useMemo(() => {
+    const names = new Intl.DisplayNames([locale], { type: "region" });
+    return [...EU_COUNTRY_CODES, "US"]
+      .map((code) => ({ code, label: names.of(code) ?? code }))
+      .sort((left, right) => left.label.localeCompare(right.label, locale));
+  }, [locale]);
+  const detectedEmergencyCountryName = useMemo(() => {
+    if (!detectedEmergencyCountryCode) return null;
+    return new Intl.DisplayNames([locale], { type: "region" }).of(detectedEmergencyCountryCode) ?? detectedEmergencyCountryCode;
+  }, [detectedEmergencyCountryCode, locale]);
+  const openEmergencyPanel = () => {
+    setEmergencyCountryOverride(emergencyNumberForCountry(detectedEmergencyCountryCode) ? detectedEmergencyCountryCode ?? "" : "");
+    setEmergencyCallConfirmation(false);
+    setEmergencyCopyStatus("idle");
+    setEmergencyOpen(true);
+  };
+  const closeEmergencyPanel = () => {
+    const panel = emergencyModalPanelRef.current;
+    if (!panel) {
+      setEmergencyOpen(false);
+      return;
+    }
+    const mobile = window.matchMedia("(max-width: 720px)").matches;
+    gsap.killTweensOf(panel);
+    gsap.to(panel, {
+      duration: mobile ? 0.3 : 0.2,
+      ease: mobile ? "power3.in" : "power2.in",
+      onComplete: () => setEmergencyOpen(false),
+      scale: mobile ? 1 : 0.84,
+      yPercent: mobile ? 105 : 0,
+    });
+  };
+  const copyEmergencyCoordinates = async () => {
+    const coordinates = `${emergencyLocation.latitude.toFixed(6)}, ${emergencyLocation.longitude.toFixed(6)}`;
+    try {
+      await navigator.clipboard.writeText(coordinates);
+      setEmergencyCopyStatus("copied");
+    } catch {
+      setEmergencyCopyStatus("error");
+    }
+  };
   const locateUser = () => {
     if (!navigator.geolocation) {
       setGeolocationStatus("error");
@@ -999,10 +1076,10 @@ export function MapExperience() {
       try {
         payload = JSON.parse(body) as { message?: string; places?: NearbyPlace[] };
       } catch {
-        throw new Error(tr(`Réponse illisible du serveur (${response.status})`, `Unreadable server response (${response.status})`));
+        throw new Error(t("mapExperience.unreadableServerResponse", { status: response.status }));
       }
       if (!response.ok) throw new Error(payload.message || `Erreur serveur ${response.status}`);
-      if (!Array.isArray(payload.places)) throw new Error(tr("La réponse ne contient pas de liste de lieux.", "The response does not contain a list of places."));
+      if (!Array.isArray(payload.places)) throw new Error(t("mapExperience.theResponseDoesNotContainAListOf"));
       setNearbyPlaces(payload.places);
       setNearbyStatus("ready");
     } catch (error) {
@@ -1062,16 +1139,16 @@ export function MapExperience() {
   const mobileSecondaryActiveClass = "border-[#d9482f] bg-[repeating-linear-gradient(35deg,rgba(217,72,47,.04)_0_5px,rgba(217,72,47,.22)_5px_6px,transparent_6px_10px)] text-[#9c2f21]";
 
   return (
-    <section className={`map-page relative h-dvh min-h-[520px] ${preferenceClasses} ${darkMap ? "dark dark-map bg-[#050706]" : ""}`} aria-label={tr("Carte des événements", "Event map")}>
+    <section className={`map-page relative h-dvh min-h-[520px] ${preferenceClasses} ${darkMap ? "dark dark-map bg-[#050706]" : ""}`} aria-label={t("mapExperience.eventMap")}>
       {showLoadingScreen && (
         <div
-          aria-label={tr("Chargement de la carte", "Loading the map")}
+          aria-label={t("mapExperience.loadingTheMap")}
           aria-live="polite"
           className={`loading-screen-failsafe fixed inset-0 z-[5000] grid place-items-center bg-white ${loadingScreenLeaving ? "loading-screen-leaving" : ""}`}
           role="status"
         >
           <div className="grid place-items-center gap-5">
-            <div className="relative size-[clamp(170px,34vw,280px)]" aria-label={tr("Logo Firemaps animé", "Animated Firemaps logo")}>
+            <div className="relative size-[clamp(170px,34vw,280px)]" aria-label={t("mapExperience.animatedFiremapsLogo")}>
               {useSafariLoadingFallback ? (
                 <Image
                   alt="Logo Firemaps"
@@ -1083,7 +1160,7 @@ export function MapExperience() {
                 />
               ) : (
                 <video
-                  aria-label={tr("Logo Firemaps animé", "Animated Firemaps logo")}
+                  aria-label={t("mapExperience.animatedFiremapsLogo")}
                   autoPlay
                   className="absolute inset-0 size-full object-contain"
                   loop
@@ -1096,8 +1173,8 @@ export function MapExperience() {
               )}
             </div>
             <span aria-hidden className="relative h-5 min-w-[280px] whitespace-nowrap text-center text-sm font-black tracking-[.14em] text-[#172322] uppercase">
-              <span className="loading-message loading-message-first">{tr("Chargement de la carte…", "Loading the map…")}</span>
-              <span className="loading-message loading-message-second">{tr("Protégeons nos forêts", "Let’s protect our forests")}</span>
+              <span className="loading-message loading-message-first">{t("mapExperience.loadingTheMap2")}</span>
+              <span className="loading-message loading-message-second">{t("mapExperience.letSProtectOurForests")}</span>
             </span>
           </div>
         </div>
@@ -1139,7 +1216,7 @@ export function MapExperience() {
             const longitude = points.reduce((sum, point) => sum + point.longitude, 0) / points.length;
             setReportModalLocation({
               ...reportDraftLocation,
-              label: `${reportDrawingType === "line" ? tr("Limite", "Boundary") : tr("Zone", "Area")} ${tr("sélectionnée", "selected")} · ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+              label: `${reportDrawingType === "line" ? t("mapExperience.boundary") : t("mapExperience.area")} ${t("mapExperience.selected")} · ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
               latitude,
               longitude,
             });
@@ -1193,63 +1270,6 @@ export function MapExperience() {
         windUnit={mapPreferences.windUnit}
         windObservations={windState.observations}
       />
-      {mapLoadNotice.kind !== "hidden" && (
-        <div
-          aria-live="polite"
-          className="pointer-events-none absolute left-1/2 top-1/2 z-[480] w-[min(330px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 max-[520px]:top-[46%]"
-          role="status"
-        >
-          <div className="flex min-h-[70px] items-center gap-3 rounded-[18px_15px_20px_16px] border-[1.5px] border-[rgba(23,35,34,.68)] bg-[rgba(255,255,255,.02)] px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,.42),3px_4px_0_rgba(23,35,34,.13)] backdrop-blur-sm backdrop-saturate-150 [transform:rotate(-.25deg)]">
-            <span className={`relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[48%_52%_44%_56%] border-[1.7px] bg-white/65 shadow-[inset_0_0_12px_rgba(255,255,255,.65)] ${
-              mapLoadNotice.kind === "error" ? "border-[#b8322a]"
-                : mapLoadNotice.kind === "success" ? "border-[#21734d]"
-                  : "border-[var(--fire)]"
-            }`}>
-              <Image
-                alt=""
-                aria-hidden
-                className={`size-8 object-contain ${mapLoadNotice.kind === "searching" || mapLoadNotice.kind === "slow" ? "animate-pulse" : ""}`}
-                height={32}
-                src="/logo.png"
-                width={32}
-              />
-            </span>
-            <span className="grid min-w-0 gap-1 text-left leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,.8)]">
-              <strong className="text-[.86rem]">
-                {mapLoadNotice.kind === "searching" && tr("Recherche dans cette zone…", "Searching this area…")}
-                {mapLoadNotice.kind === "slow" && tr("La source satellite prend plus de temps…", "The satellite source is taking longer…")}
-                {mapLoadNotice.kind === "success" && tr(
-                  `${mapLoadNotice.count} détection${mapLoadNotice.count > 1 ? "s" : ""} trouvée${mapLoadNotice.count > 1 ? "s" : ""}`,
-                  `${mapLoadNotice.count} detection${mapLoadNotice.count === 1 ? "" : "s"} found`,
-                )}
-                {mapLoadNotice.kind === "empty" && tr("Aucune détection récente trouvée", "No recent detections found")}
-                {mapLoadNotice.kind === "zoom" && tr("Rapprochez la carte", "Zoom in on the map")}
-                {mapLoadNotice.kind === "error" && tr("Source temporairement indisponible", "Source temporarily unavailable")}
-              </strong>
-              <small className="text-[.7rem] leading-[1.35] text-white/85">
-                {mapLoadNotice.kind === "searching" && tr("Interrogation des capteurs VIIRS.", "Querying VIIRS sensors.")}
-                {mapLoadNotice.kind === "slow" && tr("La carte reste utilisable pendant l’attente.", "You can keep using the map while waiting.")}
-                {mapLoadNotice.kind === "success" && tr("La carte vient d’être actualisée.", "The map has just been updated.")}
-                {mapLoadNotice.kind === "empty" && tr("Cela ne garantit pas l’absence de feu.", "This does not guarantee that there is no fire.")}
-                {mapLoadNotice.kind === "zoom" && tr("Zoomez pour charger les détections de la région.", "Zoom in to load detections for this region.")}
-                {mapLoadNotice.kind === "error" && tr("Les anciens points restent affichés lorsqu’ils existent.", "Previous points remain visible when available.")}
-              </small>
-              {mapLoadNotice.kind === "error" && (
-                <button
-                  className="pointer-events-auto mt-1 w-fit rounded-[8px_6px_9px_7px] border border-[#172322] bg-white px-3 py-1 text-[.7rem] font-bold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.18)] [text-shadow:none]"
-                  onClick={() => {
-                    firmsRecoveryAttemptsRef.current = 0;
-                    setRefreshRevision((revision) => revision + 1);
-                  }}
-                  type="button"
-                >
-                  {tr("Réessayer", "Try again")}
-                </button>
-              )}
-            </span>
-          </div>
-        </div>
-      )}
       <MapSearch
         onMobileOpenChange={setMobileSearchOpen}
         onSelect={(location) => {
@@ -1266,38 +1286,38 @@ export function MapExperience() {
         </summary>
         <section className="absolute top-[calc(100%+8px)] right-0 grid w-[min(360px,calc(100vw-24px))] gap-3 rounded-[14px_11px_16px_12px] border-2 border-[#172322] bg-white/97 p-4 text-[#172322] shadow-[4px_5px_0_rgba(23,35,34,.2)] backdrop-blur-xl">
           <div>
-            <small className="font-black tracking-[.12em] uppercase">{tr("Sources de la carte", "Map sources")}</small>
-            <h2 className="mt-1 mb-0 text-lg">{tr("D’où viennent les informations ?", "Where does the information come from?")}</h2>
+            <small className="font-black tracking-[.12em] uppercase">{t("mapExperience.mapSources")}</small>
+            <h2 className="mt-1 mb-0 text-lg">{t("mapExperience.whereDoesTheInformationComeFrom")}</h2>
           </div>
           <dl className="m-0 grid gap-2 text-xs [&_dd]:m-0 [&_dd]:text-muted [&_dt]:font-extrabold">
-            <div><dt>{tr("Feux détectés", "Detected fires")}</dt><dd>NASA LANCE FIRMS · VIIRS.</dd></div>
-            <div><dt>{tr("Périmètres et historique", "Perimeters and history")}</dt><dd>{tr("EFFIS et BDIFF · données distinctes des détections récentes.", "EFFIS and BDIFF · separate from recent detections.")}</dd></div>
-            <div><dt>{tr("Vent, fumée et qualité de l’air", "Wind, smoke and air quality")}</dt><dd>Open-Meteo, Météo-France models and CAMS.</dd></div>
-            <div><dt>{tr("Adresses et végétation", "Addresses and vegetation")}</dt><dd>IGN · Géoplateforme.</dd></div>
-            <div><dt>{tr("Fonds cartographiques", "Base maps")}</dt><dd>Esri, Maxar, Earthstar Geographics and the GIS community.</dd></div>
-            <div><dt>{tr("Observations citoyennes", "Community observations")}</dt><dd>{tr("Contributions des utilisateurs, affichées comme non vérifiées par défaut.", "User contributions, shown as unverified by default.")}</dd></div>
+            <div><dt>{t("mapExperience.detectedFires")}</dt><dd>NASA LANCE FIRMS · VIIRS.</dd></div>
+            <div><dt>{t("mapExperience.perimetersAndHistory")}</dt><dd>{t("mapExperience.effisAndBdiffSeparateFromRecentDetections")}</dd></div>
+            <div><dt>{t("mapExperience.windSmokeAndAirQuality")}</dt><dd>Open-Meteo, Météo-France models and CAMS.</dd></div>
+            <div><dt>{t("mapExperience.addressesAndVegetation")}</dt><dd>IGN · Géoplateforme.</dd></div>
+            <div><dt>{t("mapExperience.baseMaps")}</dt><dd>Esri, Maxar, Earthstar Geographics and the GIS community.</dd></div>
+            <div><dt>{t("mapExperience.communityObservations")}</dt><dd>{t("mapExperience.userContributionsShownAsUnverifiedByDefault")}</dd></div>
           </dl>
           <p className="m-0 border-t border-dashed border-[#263532]/50 pt-3 text-[.68rem] font-bold text-muted">
-            {tr("Une détection satellite ne confirme ni un incendie ni une surface brûlée.", "A satellite detection confirms neither a wildfire nor a burned area.")}
+            {t("mapExperience.aSatelliteDetectionConfirmsNeitherAWildfireNor")}
           </p>
         </section>
       </details>
       <aside
-        aria-label={tr("Légende des types d’informations", "Information type legend")}
+        aria-label={t("mapExperience.informationTypeLegend")}
         className="absolute top-[78px] left-3 z-[495] flex rotate-[-.2deg] items-center gap-2 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] bg-white/92 px-2 py-1.5 text-[.62rem] font-extrabold text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.16)] backdrop-blur-md max-[520px]:hidden"
         data-testid="map-mini-legend"
       >
-        <span className="flex items-center gap-1" title={tr("Détection satellite", "Satellite detection")}>
+        <span className="flex items-center gap-1" title={t("mapExperience.satelliteDetection")}>
           <i className="relative size-3 rounded-full border border-[#d9482f] bg-[#ffe0d5] after:absolute after:inset-[3px] after:rounded-full after:bg-[#ff321f] after:content-['']" />
           <span className="max-[520px]:sr-only">Satellite</span>
         </span>
-        <span className="flex items-center gap-1" title={tr("Périmètre officiel estimé", "Estimated official perimeter")}>
+        <span className="flex items-center gap-1" title={t("mapExperience.estimatedOfficialPerimeter")}>
           <i className="size-3 rotate-[4deg] border border-dashed border-[#84291f] bg-[#f5d8d2]" />
-          <span className="max-[520px]:sr-only">{tr("Officiel", "Official")}</span>
+          <span className="max-[520px]:sr-only">{t("mapExperience.official")}</span>
         </span>
-        <span className="flex items-center gap-1" title={tr("Signalement citoyen", "Community report")}>
+        <span className="flex items-center gap-1" title={t("mapExperience.communityReport")}>
           <i className="grid size-3 place-items-center rounded-[45%_55%_48%_52%] border border-[#172322] bg-white text-[.62rem] leading-none text-[#d9482f]">+</i>
-          <span className="max-[520px]:sr-only">{tr("Citoyen", "Community")}</span>
+          <span className="max-[520px]:sr-only">{t("mapExperience.community")}</span>
         </span>
       </aside>
       {(measureDistance || measureArea) && showMeasureHint && (
@@ -1309,10 +1329,10 @@ export function MapExperience() {
             <SketchIcon name={measureArea ? "area" : "distance"} />
           </span>
           <span className="grid gap-0.5 text-left">
-            <strong className="text-sm">{measureArea ? tr("Mesurer une surface", "Measure an area") : tr("Mesurer une distance", "Measure a distance")}</strong>
+            <strong className="text-sm">{measureArea ? t("mapExperience.measureAnArea") : t("mapExperience.measureADistance")}</strong>
             <small className="text-[.7rem] text-muted">
-              <span className="max-[520px]:hidden">{tr("Cliquez pour ajouter un point · Double-cliquez ou utilisez ✓ pour terminer", "Click to add a point · Double-click or use ✓ to finish")}</span>
-              <span className="hidden max-[520px]:inline">{tr("Touchez la carte pour ajouter un point · Appuyez sur ✓ pour terminer", "Tap the map to add a point · Press ✓ to finish")}</span>
+              <span className="max-[520px]:hidden">{t("mapExperience.clickToAddAPointDoubleClickOr")}</span>
+              <span className="hidden max-[520px]:inline">{t("mapExperience.tapTheMapToAddAPointPress")}</span>
             </small>
           </span>
         </aside>
@@ -1323,12 +1343,12 @@ export function MapExperience() {
           className="absolute top-[78px] left-1/2 z-650 flex w-max max-w-[calc(100%_-_96px)] -translate-x-1/2 rotate-[-.25deg] items-center gap-3 rounded-[12px_9px_14px_10px] border-2 border-dashed border-[#176f96] bg-white px-4 py-3 text-[#172322] shadow-[3px_3px_0_rgba(23,35,34,.2)] max-[520px]:right-[64px] max-[520px]:left-[max(8px,env(safe-area-inset-left))] max-[520px]:w-auto max-[520px]:max-w-none max-[520px]:translate-x-0 max-[520px]:gap-2 max-[520px]:px-3"
         >
           <span className="grid gap-0.5 text-left">
-            <strong className="text-sm">{tr("Dessiner la zone observée", "Draw the observed area")}</strong>
+            <strong className="text-sm">{t("mapExperience.drawTheObservedArea")}</strong>
             <small className="text-[.7rem] text-muted">
               <span className="max-[520px]:hidden">
                 {reportDrawingType === "line"
-                  ? tr("Place au moins 2 points · Entrée, double-clic ou ✓ pour terminer", "Place at least 2 points · press Enter, double-click or ✓ to finish")
-                  : tr("Place au moins 3 points · Entrée, double-clic, premier point ou ✓ pour terminer", "Place at least 3 points · press Enter, double-click, tap the first point or ✓ to finish")}
+                  ? t("mapExperience.placeAtLeast2PointsPressEnterDouble")
+                  : t("mapExperience.placeAtLeast3PointsPressEnterDouble")}
               </span>
               <span className="hidden max-[520px]:inline">
                 {reportDrawingType === "line"
@@ -1342,12 +1362,12 @@ export function MapExperience() {
             setReportDraftLocation(null);
             setReportObservedZone(null);
             setReportModalLocation(null);
-          }} type="button">{tr("Annuler", "Cancel")}</button>
+          }} type="button">{t("mapExperience.cancel")}</button>
         </aside>
       )}
       {reportModalLocation && (
         <div className="fixed inset-0 z-2000 flex items-end justify-center bg-[rgba(5,20,18,.5)] md:items-center md:p-6">
-          <div aria-label={tr("Nouveau signalement", "New report")} aria-modal="true" className="sketch-modal-panel relative max-h-[96dvh] w-full max-w-[680px] overflow-y-auto overscroll-contain px-3.5 pt-[18px] pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" ref={reportModalPanelRef} role="dialog">
+          <div aria-label={t("mapExperience.newReport")} aria-modal="true" className="sketch-modal-panel relative max-h-[96dvh] w-full max-w-[680px] overflow-y-auto overscroll-contain px-3.5 pt-[18px] pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" ref={reportModalPanelRef} role="dialog">
             <CommunityReportForm
               embedded
               isAuthenticated={Boolean(authSession?.user)}
@@ -1392,16 +1412,16 @@ export function MapExperience() {
             }
           }}
         >
-          <div aria-label={tr("Connexion", "Sign in")} aria-modal="true" className="sketch-modal-panel relative grid max-h-[96dvh] w-full max-w-[430px] gap-4 overflow-y-auto overscroll-contain px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" ref={accountModalPanelRef} role="dialog">
+          <div aria-label={t("mapExperience.signIn")} aria-modal="true" className="sketch-modal-panel relative grid max-h-[96dvh] w-full max-w-[430px] gap-4 overflow-y-auto overscroll-contain px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]" ref={accountModalPanelRef} role="dialog">
             <header className="border-b-[1.5px] border-dashed border-[#263532]/55 pb-3">
-              <small className="font-black tracking-[.12em] uppercase">{tr("Compte", "Account")}</small>
-              <h2 className="m-0 text-xl font-black">{authSession?.user ? tr("Mon compte", "My account") : tr("Connexion", "Sign in")}</h2>
+              <small className="font-black tracking-[.12em] uppercase">{t("mapExperience.account")}</small>
+              <h2 className="m-0 text-xl font-black">{authSession?.user ? t("mapExperience.myAccount") : t("mapExperience.signIn")}</h2>
             </header>
-            <button aria-label={tr("Fermer la connexion", "Close sign-in")} className="absolute top-3 right-3 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl" onClick={() => closeMobileSheet(accountModalPanelRef.current, () => setAccountOpen(false))} type="button">×</button>
+            <button aria-label={t("mapExperience.closeSignIn")} className="absolute top-3 right-3 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl" onClick={() => closeMobileSheet(accountModalPanelRef.current, () => setAccountOpen(false))} type="button">×</button>
             <p className="m-0 text-sm leading-relaxed text-muted">
               {authSession?.user
-                ? tr(`Bienvenue ${authSession.user.name}. Tu peux publier des signalements et retrouver tes contributions.`, `Welcome ${authSession.user.name}. You can publish reports and find your contributions.`)
-                : tr("Connecte-toi pour publier des signalements, photos ou vidéos et retrouver tes contributions.", "Sign in to publish reports, photos or videos and find your contributions.")}
+                ? t("mapExperience.welcomeUser", { name: authSession.user.name })
+                : t("mapExperience.signInToPublishReportsPhotosOrVideos")}
             </p>
             <AuthAccountPanel
               onAuthenticated={() => {
@@ -1421,48 +1441,159 @@ export function MapExperience() {
           }}
         >
           <div
-            aria-label={tr("Informations et consignes", "Information and safety guidance")}
+            aria-label={t("mapExperience.informationAndSafetyGuidance")}
             aria-modal="true"
             className="information-dialog relative max-h-[84dvh] w-full overflow-y-auto overscroll-contain rounded-t-[20px] border-2 border-[#172322] bg-white pb-[calc(12px+env(safe-area-inset-bottom))] text-[#172322] [overflow-anchor:none] min-[721px]:max-h-[min(calc(100dvh-159px),760px)] min-[721px]:w-[420px] min-[721px]:rounded-[19px_15px_21px_16px] min-[721px]:pb-2"
             ref={informationModalPanelRef}
             role="dialog"
           >
             <button
-              aria-label={tr("Fermer les informations", "Close information")}
+              aria-label={t("mapExperience.closeInformation")}
               className="absolute top-3 right-3 z-10 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl text-ink shadow-[1px_1px_0_rgba(23,35,34,.2)]"
               onClick={closeInformationPanel}
               type="button"
             >
               ×
             </button>
-            <InformationContent />
+            <InformationContent
+              onOpenEmergency={() => {
+                setInformationOpen(false);
+                openEmergencyPanel();
+              }}
+            />
           </div>
         </div>
       )}
-      {!isOnline && <div className="absolute top-0 right-0 left-0 z-800 bg-[#7a2d22] px-3 py-2 text-center text-xs font-extrabold text-white" role="status">{tr("Hors ligne · les informations visibles peuvent être anciennes.", "Offline · visible information may be outdated.")}</div>}
+      {emergencyOpen && (
+        <div
+          className="fixed inset-0 z-2000 flex items-end justify-center bg-[rgba(5,20,18,.5)] md:items-center md:p-6"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) closeEmergencyPanel();
+          }}
+        >
+          <div
+            aria-label={t("mapExperience.emergencyNumbers")}
+            aria-modal="true"
+            className="sketch-modal-panel relative grid max-h-[96dvh] w-full max-w-[470px] gap-4 overflow-y-auto overscroll-contain px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))] md:max-h-[calc(100dvh_-_48px)]"
+            ref={emergencyModalPanelRef}
+            role="dialog"
+          >
+            <header className="border-b-[1.5px] border-dashed border-[#263532]/55 pb-3 pr-11">
+              <small className="font-black tracking-[.12em] uppercase">{t("mapExperience.safety")}</small>
+              <h2 className="m-0 text-xl font-black">{t("mapExperience.emergencyNumbers")}</h2>
+            </header>
+            <button
+              aria-label={t("mapExperience.close")}
+              className="absolute top-3 right-3 grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white text-2xl"
+              onClick={closeEmergencyPanel}
+              type="button"
+            >
+              ×
+            </button>
+
+            <div className="grid gap-1 rounded-[11px_8px_12px_9px] border-[1.5px] border-dashed border-[#263532]/65 p-3">
+              <span className="text-xs font-black tracking-[.08em] uppercase">{t("mapExperience.locationUsed")}</span>
+              <strong>{detectedEmergencyCountryName ?? t("mapExperience.countryNotDetected")}</strong>
+              <span className="text-sm text-muted">
+                {selectedLocation
+                  ? t("mapExperience.selectedPointOnTheMap")
+                  : t("mapExperience.currentMapCentre")}
+                {" · "}
+                {emergencyLocation.latitude.toFixed(4)}, {emergencyLocation.longitude.toFixed(4)}
+              </span>
+            </div>
+
+            <label className="grid gap-1.5 text-sm font-bold">
+              <span>{t("mapExperience.checkOrChooseTheCountry")}</span>
+              <select
+                className="min-h-12 w-full rounded-[8px_11px_7px_10px] border-[1.5px] border-[#172322] bg-white px-3 text-base"
+                onChange={(event) => {
+                  setEmergencyCountryOverride(event.target.value);
+                  setEmergencyCallConfirmation(false);
+                }}
+                value={emergencyNumber ? emergencyCountryCode : ""}
+              >
+                <option value="">{t("mapExperience.chooseASupportedCountry")}</option>
+                {emergencyCountryNames.map((country) => (
+                  <option key={country.code} value={country.code}>{country.label}</option>
+                ))}
+              </select>
+            </label>
+
+            {emergencyNumber ? (
+              <section className="grid gap-3 rounded-[12px_9px_13px_10px] border-2 border-[#b92f22] bg-[#fff6f2] p-3">
+                <div>
+                  <span className="block text-xs font-black tracking-[.08em] text-[#8c281f] uppercase">{t("mapExperience.generalEmergency")}</span>
+                  <strong className="text-3xl text-[#b92f22]">{emergencyNumber.number}</strong>
+                </div>
+                {!emergencyCallConfirmation ? (
+                  <button
+                    className="min-h-12 rounded-[8px_11px_7px_10px] border-2 border-[#172322] bg-[#b92f22] px-4 font-black text-white shadow-[2px_2px_0_rgba(23,35,34,.28)]"
+                    onClick={() => setEmergencyCallConfirmation(true)}
+                    type="button"
+                  >
+                    {t("mapExperience.callEmergencyNumber", { number: emergencyNumber.number })}
+                  </button>
+                ) : (
+                  <div className="grid gap-2">
+                    <strong>{t("mapExperience.confirmTheEmergencyCall")}</strong>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button className="min-h-11 rounded-lg border-[1.5px] border-[#172322] bg-white font-bold" onClick={() => setEmergencyCallConfirmation(false)} type="button">{t("mapExperience.back")}</button>
+                      <a className="grid min-h-11 place-items-center rounded-lg border-[1.5px] border-[#172322] bg-[#b92f22] font-black text-white no-underline" href={`tel:${emergencyNumber.number}`}>{t("mapExperience.confirm")}</a>
+                    </div>
+                  </div>
+                )}
+                <a className="text-xs font-bold text-[#42524f]" href={emergencyNumber.sourceUrl} rel="noreferrer" target="_blank">
+                  {t("mapExperience.numberVerifiedBy", { source: emergencyNumber.sourceName })} ↗
+                </a>
+              </section>
+            ) : (
+              <p className="m-0 rounded-[10px_8px_11px_9px] border-[1.5px] border-dashed border-[#b92f22] bg-[#fff6f2] p-3 text-sm leading-relaxed">
+                {t("mapExperience.firemapsDoesNotYetHaveAVerifiedNumber")}
+              </p>
+            )}
+
+            <button
+              className="min-h-12 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#172322] bg-white px-4 font-bold shadow-[2px_2px_0_rgba(23,35,34,.16)]"
+              onClick={() => void copyEmergencyCoordinates()}
+              type="button"
+            >
+              {emergencyCopyStatus === "copied"
+                ? t("mapExperience.coordinatesCopied")
+                : emergencyCopyStatus === "error"
+                  ? t("mapExperience.couldNotCopy")
+                  : t("mapExperience.copyCoordinates")}
+            </button>
+            <p className="m-0 text-xs leading-relaxed text-muted">
+              {t("mapExperience.firemapsNeverStartsACallAutomaticallyIfYou")}
+            </p>
+          </div>
+        </div>
+      )}
+      {!isOnline && <div className="absolute top-0 right-0 left-0 z-800 bg-[#7a2d22] px-3 py-2 text-center text-xs font-extrabold text-white" role="status">{t("mapExperience.offlineVisibleInformationMayBeOutdated")}</div>}
       {(showAirQuality || showNearbyPlaces || showForest || showForestWeather || showHistory) && (
         <div className="absolute top-[78px] left-[13px] z-510 grid max-w-[370px] gap-2 dark:[&>aside]:border-white/25 dark:[&>aside]:bg-[rgba(17,22,21,.9)] dark:[&>aside]:text-white dark:[&_small]:!text-white/60 max-[520px]:left-2.5 max-[520px]:max-w-[calc(100vw_-_76px)]">
           {showAirQuality && (
-            <aside className="grid gap-1.5 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#263532] bg-[rgba(255,252,239,.9)] px-[11px] py-[9px] shadow-[3px_3px_0_rgba(23,35,34,.15)] backdrop-blur-lg [&>strong]:text-[.76rem] [&>small]:text-[.62rem] [&>small]:text-muted" aria-label={tr("Légende de la qualité de l’air", "Air quality legend")}>
-              <strong>{tr("Fumée et qualité de l’air", "Smoke and air quality")}</strong>
+            <aside className="grid gap-1.5 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#263532] bg-[rgba(255,252,239,.9)] px-[11px] py-[9px] shadow-[3px_3px_0_rgba(23,35,34,.15)] backdrop-blur-lg [&>strong]:text-[.76rem] [&>small]:text-[.62rem] [&>small]:text-muted" aria-label={t("mapExperience.airQualityLegend")}>
+              <strong>{t("mapExperience.smokeAndAirQuality")}</strong>
               <div className="air-quality-scale">
-                <span><i className="good" />0–20 {tr("Bon", "Good")}</span>
-                <span><i className="fair" />21–40 {tr("Moyen", "Fair")}</span>
-                <span><i className="moderate" />41–60 {tr("Dégradé", "Moderate")}</span>
-                <span><i className="poor" />61–80 {tr("Mauvais", "Poor")}</span>
-                <span><i className="very-poor" />81+ {tr("Très mauvais", "Very poor")}</span>
+                <span><i className="good" />0–20 {t("mapExperience.good")}</span>
+                <span><i className="fair" />21–40 {t("mapExperience.fair")}</span>
+                <span><i className="moderate" />41–60 {t("mapExperience.moderate")}</span>
+                <span><i className="poor" />61–80 {t("mapExperience.poor")}</span>
+                <span><i className="very-poor" />81+ {t("mapExperience.veryPoor")}</span>
               </div>
               <small>Estimation CAMS · maille ≈ 11 km</small>
             </aside>
           )}
           {showNearbyPlaces && (
             <aside className="grid gap-1.5 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#263532] bg-[rgba(255,252,239,.9)] px-[11px] py-[9px] shadow-[3px_3px_0_rgba(23,35,34,.15)] backdrop-blur-lg [&>strong]:text-[.76rem] [&>small]:text-[.65rem] [&>small]:text-muted [&>span]:text-[.65rem] [&>span]:text-muted" aria-live="polite">
-              <strong>{tr("Lieux exposés", "Exposed places")} · 15 km</strong>
-              {nearbyStatus === "loading" && <span>{tr("Recherche en cours…", "Searching…")}</span>}
-              {nearbyStatus === "error" && <span>{tr("Indisponible", "Unavailable")} : {nearbyError}</span>}
+              <strong>{t("mapExperience.exposedPlaces")} · 15 km</strong>
+              {nearbyStatus === "loading" && <span>{t("mapExperience.searching")}</span>}
+              {nearbyStatus === "error" && <span>{t("mapExperience.unavailable")} : {nearbyError}</span>}
               {nearbyStatus === "ready" && (
                 <>
-                  <span>{tr(`${nearbyPlaces.length} lieu${nearbyPlaces.length > 1 ? "x" : ""} affiché${nearbyPlaces.length > 1 ? "s" : ""}`, `${nearbyPlaces.length} place${nearbyPlaces.length > 1 ? "s" : ""} shown`)}</span>
+                  <span>{t(nearbyPlaces.length > 1 ? "mapExperience.placesShown" : "mapExperience.placeShown", { count: nearbyPlaces.length })}</span>
                   <div className="nearby-category-legend">
                     {[...new Set(nearbyPlaces.map((place) => place.category))].map((category) => (
                       <small key={category}>{category}</small>
@@ -1470,48 +1601,48 @@ export function MapExperience() {
                   </div>
                 </>
               )}
-              <small>{tr("Cliquez sur un repère pour les détails", "Click a marker for details")} · OSM</small>
+              <small>{t("mapExperience.clickAMarkerForDetails")} · OSM</small>
             </aside>
           )}
           {showForest && (
             <aside className="grid gap-1.5 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#263532] bg-[rgba(255,252,239,.9)] px-[11px] py-[9px] shadow-[3px_3px_0_rgba(23,35,34,.15)] backdrop-blur-lg [&>strong]:text-[.76rem] [&>strong]:text-[#245d35] [&>small]:text-[.65rem] [&>small]:text-muted [&>span]:text-[.65rem] [&>span]:text-muted">
-              <strong>{tr("Végétation forestière IGN", "IGN forest vegetation")}</strong>
-              <span>{tr("Types de peuplements et zones boisées issus de la BD Forêt.", "Forest stands and wooded areas from the BD Forêt dataset.")}</span>
-              <small>{tr("Inventaire cartographique · pas une observation en temps réel", "Map inventory · not a real-time observation")}</small>
+              <strong>{t("mapExperience.ignForestVegetation")}</strong>
+              <span>{t("mapExperience.forestStandsAndWoodedAreasFromTheBd")}</span>
+              <small>{t("mapExperience.mapInventoryNotARealTimeObservation")}</small>
             </aside>
           )}
           {showForestWeather && (
             <aside className="grid gap-1.5 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#263532] bg-[rgba(255,252,239,.9)] px-[11px] py-[9px] shadow-[3px_3px_0_rgba(23,35,34,.15)] backdrop-blur-lg [&>strong]:text-[.76rem] [&>small]:text-[.65rem] [&>small]:text-muted [&>span]:text-[.65rem] [&>span]:text-muted" aria-live="polite">
-              <strong>{tr("Danger Météo des forêts", "Forest fire danger")}</strong>
-              {forestWeatherState.status === "loading" && <span>{tr("Chargement Météo-France…", "Loading Météo-France…")}</span>}
-              {forestWeatherState.status === "error" && <span>{tr("Données momentanément indisponibles.", "Data temporarily unavailable.")}</span>}
+              <strong>{t("mapExperience.forestFireDanger")}</strong>
+              {forestWeatherState.status === "loading" && <span>{t("mapExperience.loadingMeteoFrance")}</span>}
+              {forestWeatherState.status === "error" && <span>{t("mapExperience.dataTemporarilyUnavailable")}</span>}
               {forestWeatherState.status === "ready" && (
                 <>
                   <div className="forest-weather-scale">
-                    <span><i className="level-1" />{tr("Faible", "Low")}</span>
-                    <span><i className="level-2" />{tr("Modéré", "Moderate")}</span>
-                    <span><i className="level-3" />{tr("Élevé", "High")}</span>
-                    <span><i className="level-4" />{tr("Très élevé", "Very high")}</span>
+                    <span><i className="level-1" />{t("mapExperience.low")}</span>
+                    <span><i className="level-2" />{t("mapExperience.moderate2")}</span>
+                    <span><i className="level-3" />{t("mapExperience.high")}</span>
+                    <span><i className="level-4" />{t("mapExperience.veryHigh")}</span>
                   </div>
                   <small>
-                    {tr("J+1 · publication du", "Tomorrow · published")} {new Intl.DateTimeFormat(locale, {
+                    {t("mapExperience.tomorrowPublished")} {new Intl.DateTimeFormat(locale, {
                       dateStyle: "short",
                       timeStyle: "short",
                     }).format(new Date(forestWeatherState.publishedAt))}
                   </small>
                 </>
               )}
-              <small>{tr("Danger départemental prévu · pas des feux actifs", "Forecast regional danger · not active fires")}</small>
+              <small>{t("mapExperience.forecastRegionalDangerNotActiveFires")}</small>
             </aside>
           )}
           {showHistory && (
             <aside className="grid gap-1 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#4c2d52] bg-[rgba(250,244,251,.92)] px-[11px] py-[9px] shadow-[3px_3px_0_rgba(44,24,48,.16)] backdrop-blur-lg [&>strong]:text-[.78rem] [&>strong]:text-[#4c2d52] [&>small]:text-[.65rem] [&>small]:text-muted [&>span]:text-[.65rem] [&>span]:text-muted">
-              <strong>{tr("Historique des feux", "Fire history")} · {historyYear}</strong>
-              {historyStatus === "zoom" && <span>{tr("Zoomez davantage pour charger les communes.", "Zoom in to load municipalities.")}</span>}
-              {historyStatus === "loading" && <span>{tr("Chargement BDIFF…", "Loading BDIFF…")}</span>}
-              {historyStatus === "error" && <span>{tr("Historique momentanément indisponible.", "History temporarily unavailable.")}</span>}
-              {historyStatus === "ready" && <span>{tr(`${historyTotal} feu${historyTotal > 1 ? "x" : ""} dans cette zone`, `${historyTotal} fire${historyTotal > 1 ? "s" : ""} in this area`)}</span>}
-              <small>{tr("BDIFF et sources officielles · pas en temps réel", "BDIFF and official sources · not real time")}</small>
+              <strong>{t("mapExperience.fireHistory")} · {historyYear}</strong>
+              {historyStatus === "zoom" && <span>{t("mapExperience.zoomInToLoadMunicipalities")}</span>}
+              {historyStatus === "loading" && <span>{t("mapExperience.loadingBdiff")}</span>}
+              {historyStatus === "error" && <span>{t("mapExperience.historyTemporarilyUnavailable")}</span>}
+              {historyStatus === "ready" && <span>{t(historyTotal > 1 ? "mapExperience.firesInThisArea" : "mapExperience.fireInThisArea", { count: historyTotal })}</span>}
+              <small>{t("mapExperience.bdiffAndOfficialSourcesNotRealTime")}</small>
             </aside>
           )}
         </div>
@@ -1520,10 +1651,10 @@ export function MapExperience() {
         <div
           data-testid="map-timeline"
           className={`absolute right-3 bottom-3 left-3 z-510 flex min-h-[68px] items-center gap-[7px] rounded-[27px_24px_29px_25px] border-2 p-[7px_9px] text-[#172322] shadow-[1px_1px_0_rgba(23,35,34,.55),0_0_0_1px_rgba(23,35,34,.7),3px_4px_0_rgba(23,35,34,.18)] backdrop-blur-[7px] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[25px_28px_24px_29px] after:border after:border-[#172322]/42 after:content-[''] [.map-high-contrast_&]:!border-black [.map-high-contrast_&]:!shadow-[0_0_0_2px_#fff,0_0_0_4px_#000] min-[521px]:right-auto min-[521px]:left-1/2 min-[521px]:w-[calc(100%_-_24px)] min-[521px]:max-w-[780px] min-[521px]:-translate-x-1/2 max-[520px]:right-2 max-[520px]:bottom-[calc(8px+env(safe-area-inset-bottom))] max-[520px]:left-2 max-[520px]:min-h-[54px] max-[520px]:gap-[3px] max-[520px]:p-[5px_8px] ${showHistory ? "border-[#4c2d52] bg-[rgba(250,244,251,.95)] [&_input[type=range]]:accent-[#6f3f72]" : "border-white/95 bg-white/95"}`}
-          aria-label={tr("Chronologie de la carte", "Map timeline")}
+          aria-label={t("mapExperience.mapTimeline")}
         >
           <button
-            aria-label={(showHistory ? historyPlaying : timelinePlaying) ? tr("Mettre la chronologie en pause", "Pause timeline") : tr("Lire la chronologie", "Play timeline")}
+            aria-label={(showHistory ? historyPlaying : timelinePlaying) ? t("mapExperience.pauseTimeline") : t("mapExperience.playTimeline")}
             className={timelineControlClass}
             onClick={() => {
               if (showHistory) {
@@ -1543,9 +1674,9 @@ export function MapExperience() {
             <div className="flex items-baseline justify-center gap-2">
               <strong className="text-[.82rem] capitalize max-[520px]:text-[.72rem]">
                 {showHistory
-                  ? `${tr("Historique BDIFF", "BDIFF history")} · ${historyYear}`
+                  ? `${t("mapExperience.bdiffHistory")} · ${historyYear}`
                   : timelineOffsetHours === 0
-                  ? `${tr("Maintenant", "Now")} · ${new Date(displayedReferenceTime).toLocaleTimeString(locale, {
+                  ? `${t("mapExperience.now")} · ${new Date(displayedReferenceTime).toLocaleTimeString(locale, {
                       hour: "2-digit",
                       hour12: mapPreferences.hourFormat === "12",
                       minute: "2-digit",
@@ -1560,7 +1691,7 @@ export function MapExperience() {
               </strong>
               <span className="text-[.62rem] font-extrabold text-[#68716f] capitalize">
                 {showHistory
-                  ? tr("2006 à aujourd’hui", "2006 to today")
+                  ? t("mapExperience.2006ToToday")
                   : new Date(displayedReferenceTime).toLocaleDateString(locale, {
                       day: "numeric",
                       month: "short",
@@ -1594,7 +1725,7 @@ export function MapExperience() {
             </div>
             <div className="timeline-track relative h-[22px] max-[520px]:h-[17px]">
               <input
-                aria-label={tr("Heures avant maintenant", "Hours before now")}
+                aria-label={t("mapExperience.hoursBeforeNow")}
                 max={showHistory ? new Date().getUTCFullYear() - 1 : timelineMaxHours}
                 min={showHistory ? 2006 : 0}
                 onChange={(event) => {
@@ -1613,7 +1744,7 @@ export function MapExperience() {
             </div>
           </div>
           <button
-            aria-label={showHistory ? tr("Aller à la dernière année disponible", "Go to latest available year") : tr("Revenir à maintenant", "Return to now")}
+            aria-label={showHistory ? t("mapExperience.goToLatestAvailableYear") : t("mapExperience.returnToNow")}
             className={`${timelineControlClass} rotate-[.7deg] rounded-[47%_53%_52%_48%] disabled:cursor-default disabled:opacity-35`}
             disabled={showHistory ? historyYear === new Date().getUTCFullYear() - 1 : timelineOffsetHours === 0}
             onClick={() => {
@@ -1634,9 +1765,9 @@ export function MapExperience() {
       <nav className="map-side-tools absolute right-[13px] bottom-[140px] z-520 grid gap-2.5 max-[520px]:right-[max(8px,env(safe-area-inset-right))] max-[520px]:bottom-[calc(140px+env(safe-area-inset-bottom))] max-[520px]:gap-[7px]" aria-label="Outils de la carte">
         <button
           aria-expanded={settingsOpen}
-          aria-label={tr("Réglages de la carte", "Map settings")}
+          aria-label={t("mapExperience.mapSettings")}
           className={`sketch-tool-button !fixed !right-[max(8px,env(safe-area-inset-right))] !bottom-auto !hidden !bg-white/95 !bg-none !shadow-[1px_1px_0_rgba(23,35,34,.45)] !outline-none before:!hidden max-[520px]:!top-[calc(max(10px,env(safe-area-inset-top))_+_52px)] max-[520px]:!size-[42px] max-[520px]:!transform-none ${mobileSearchOpen ? "max-[520px]:!hidden" : "max-[520px]:!flex"} ${settingsOpen ? "!border-[#d9482f] !text-[#b72d1f]" : "!border-[#172322] !text-[#172322]"}`}
-          data-tooltip={tr("Réglages", "Settings")}
+          data-tooltip={t("mapExperience.settings")}
           onClick={() => {
             setSettingsOpen((open) => !open);
             setBaseMapMenuOpen(false);
@@ -1651,9 +1782,9 @@ export function MapExperience() {
         <div className="top-tool-group max-[520px]:!hidden">
         <button
           aria-expanded={accountOpen}
-          aria-label={authSession?.user ? tr("Mon compte", "My account") : tr("Se connecter", "Sign in")}
+          aria-label={authSession?.user ? t("mapExperience.myAccount") : t("mapExperience.signIn2")}
           className={`sketch-tool-button ${accountOpen ? "active" : ""}`}
-          data-tooltip={authSession?.user ? tr("Mon compte", "My account") : tr("Se connecter", "Sign in")}
+          data-tooltip={authSession?.user ? t("mapExperience.myAccount") : t("mapExperience.signIn2")}
           onClick={() => {
             setAccountOpen(true);
             setSettingsOpen(false);
@@ -1667,10 +1798,10 @@ export function MapExperience() {
         <div className="top-tool-group max-[520px]:!hidden">
         <button
           aria-expanded={settingsOpen}
-          aria-label={tr("Réglages de la carte", "Map settings")}
+          aria-label={t("mapExperience.mapSettings")}
           className={`sketch-tool-button ${settingsOpen ? "active" : ""}`}
           data-settings-trigger
-          data-tooltip={tr("Réglages", "Settings")}
+          data-tooltip={t("mapExperience.settings")}
           onClick={() => {
             setSettingsOpen((open) => !open);
             setMoreToolsOpen(false);
@@ -1683,19 +1814,19 @@ export function MapExperience() {
         <div className="top-tool-group max-[520px]:!hidden">
         <button
           aria-expanded={informationOpen}
-          aria-label={tr("Comprendre la carte", "Understand the map")}
+          aria-label={t("mapExperience.understandTheMap")}
           className={`sketch-tool-button ${informationOpen ? "active" : ""}`}
           data-information-trigger
-          data-tooltip={tr("Informations", "Information")}
+          data-tooltip={t("mapExperience.information")}
           onClick={() => setInformationOpen(true)}
           type="button"
         >
           <SketchIcon name="information" />
         </button>
         <button
-          aria-label={tr("Partager cette vue", "Share this view")}
+          aria-label={t("mapExperience.shareThisView")}
           className="sketch-tool-button"
-          data-tooltip={shareStatus === "copied" ? tr("Lien copié !", "Link copied!") : shareStatus === "error" ? tr("Copie impossible", "Could not copy") : tr("Partager", "Share")}
+          data-tooltip={shareStatus === "copied" ? t("mapExperience.linkCopied") : shareStatus === "error" ? t("mapExperience.couldNotCopy") : t("mapExperience.share")}
           onClick={() => void shareCurrentView()}
           type="button"
         >
@@ -1704,10 +1835,10 @@ export function MapExperience() {
         </div>
         <div className="top-tool-group max-[520px]:!hidden">
         <button
-          aria-label={measureDistance ? tr("Terminer la mesure de distance", "Finish distance measurement") : tr("Mesurer une distance", "Measure a distance")}
+          aria-label={measureDistance ? t("mapExperience.finishDistanceMeasurement") : t("mapExperience.measureADistance")}
           aria-pressed={measureDistance}
           className={`sketch-tool-button ${measureDistance ? "active" : ""}`}
-          data-tooltip={measureDistance ? tr("Mesure active", "Measurement active") : tr("Mesurer une distance", "Measure a distance")}
+          data-tooltip={measureDistance ? t("mapExperience.measurementActive") : t("mapExperience.measureADistance")}
           onClick={() => {
             setMeasureArea(false);
             setMeasureDistance((active) => !active);
@@ -1717,10 +1848,10 @@ export function MapExperience() {
           <SketchIcon name="distance" />
         </button>
         <button
-          aria-label={measureArea ? tr("Terminer la mesure de surface", "Finish area measurement") : tr("Mesurer une surface", "Measure an area")}
+          aria-label={measureArea ? t("mapExperience.finishAreaMeasurement") : t("mapExperience.measureAnArea")}
           aria-pressed={measureArea}
           className={`sketch-tool-button ${measureArea ? "active" : ""}`}
-          data-tooltip={measureArea ? tr("Surface active", "Area measurement active") : tr("Mesurer une surface", "Measure an area")}
+          data-tooltip={measureArea ? t("mapExperience.areaMeasurementActive") : t("mapExperience.measureAnArea")}
           onClick={() => {
             setMeasureDistance(false);
             setMeasureArea((active) => !active);
@@ -1732,9 +1863,9 @@ export function MapExperience() {
         </div>
         <div className="top-tool-group max-[520px]:!hidden">
         <button
-          aria-label={tr("Me localiser", "Locate me")}
+          aria-label={t("mapExperience.locateMe")}
           className="sketch-tool-button locate-tool map-locate-tool"
-          data-tooltip={tr("Me localiser", "Locate me")}
+          data-tooltip={t("mapExperience.locateMe")}
           disabled={geolocationStatus === "loading"}
           onClick={locateUser}
           type="button"
@@ -1745,9 +1876,9 @@ export function MapExperience() {
         </div>
         <div className="map-primary-tools relative grid rotate-[.45deg] gap-[6px] rounded-[29px_23px_31px_25px/26px_31px_24px_29px] border-2 border-white/90 bg-transparent p-[7px] shadow-[1px_1px_0_rgba(23,35,34,.42),0_0_5px_rgba(23,35,34,.18)] after:pointer-events-none after:absolute after:inset-[1px_-4px_-3px_2px] after:rotate-[.35deg] after:rounded-[31px_25px_28px_23px/24px_30px_25px_31px] after:border after:border-white/50 after:content-[''] max-[520px]:gap-[9px] max-[520px]:rotate-0 max-[520px]:rounded-full max-[520px]:border-0 max-[520px]:p-0 max-[520px]:shadow-none max-[520px]:after:hidden">
         <button
-          aria-label={tr("Me localiser", "Locate me")}
+          aria-label={t("mapExperience.locateMe")}
           className="sketch-tool-button locate-tool !hidden max-[520px]:!flex"
-          data-tooltip={tr("Me localiser", "Locate me")}
+          data-tooltip={t("mapExperience.locateMe")}
           disabled={geolocationStatus === "loading"}
           onClick={locateUser}
           type="button"
@@ -1756,7 +1887,7 @@ export function MapExperience() {
         </button>
         <button
           aria-expanded={baseMapMenuOpen}
-          aria-label={tr("Choisir le fond de carte", "Choose a base map")}
+          aria-label={t("mapExperience.chooseABaseMap")}
           className={`sketch-tool-button ${baseMapMenuOpen ? "active" : ""}`}
           data-tooltip={`Fond : ${baseMap === "satellite" ? "satellite" : baseMap === "plan" ? "plan" : "relief"}`}
           onClick={() => {
@@ -1770,10 +1901,10 @@ export function MapExperience() {
           <SketchIcon name="layers" />
         </button>
         <button
-          aria-label={darkMap ? tr("Utiliser le thème clair", "Use light theme") : tr("Utiliser le thème nuit", "Use night theme")}
+          aria-label={darkMap ? t("mapExperience.useLightTheme") : t("mapExperience.useNightTheme")}
           aria-pressed={darkMap}
           className={`sketch-tool-button max-[520px]:!hidden ${darkMap ? "active" : ""}`}
-          data-tooltip={darkMap ? tr("Apparence : nuit", "Appearance: night") : tr("Apparence : claire", "Appearance: light")}
+          data-tooltip={darkMap ? t("mapExperience.appearanceNight") : t("mapExperience.appearanceLight")}
           onClick={() => {
             setDarkMap((enabled) => {
               const next = !enabled;
@@ -1786,10 +1917,10 @@ export function MapExperience() {
           <SketchIcon name="theme" />
         </button>
         <button
-          aria-label={showWind ? tr("Masquer le vent", "Hide wind") : tr("Afficher le vent", "Show wind")}
+          aria-label={showWind ? t("mapExperience.hideWind") : t("mapExperience.showWind")}
           aria-pressed={showWind}
           className={`sketch-tool-button max-[520px]:!hidden ${showWind ? "active" : ""}`}
-          data-tooltip={tr("Vent", "Wind")}
+          data-tooltip={t("mapExperience.wind")}
           onClick={() => setShowWind((visible) => !visible)}
           type="button"
         >
@@ -1799,11 +1930,11 @@ export function MapExperience() {
           aria-expanded={moreToolsOpen}
           aria-label={
             moreToolsOpen
-              ? tr("Fermer les autres outils", "Close other tools")
-              : tr(`Afficher les autres outils${activeSecondaryToolCount > 0 ? ` · ${activeSecondaryToolCount} actif${activeSecondaryToolCount > 1 ? "s" : ""}` : ""}`, `Show other tools${activeSecondaryToolCount > 0 ? ` · ${activeSecondaryToolCount} active` : ""}`)
+              ? t("mapExperience.closeOtherTools")
+              : activeSecondaryToolCount > 0 ? t("mapExperience.showOtherToolsActive", { count: activeSecondaryToolCount }) : t("mapExperience.showOtherTools")
           }
           className={`sketch-tool-button more-tools-button max-[520px]:!transform-none ${moreToolsOpen ? "active" : ""}`}
-          data-tooltip={tr("Autres outils", "Other tools")}
+          data-tooltip={t("mapExperience.otherTools")}
           onClick={() => {
             setMoreToolsOpen((open) => {
               if (!open) setMobileMoreSection("root");
@@ -1829,16 +1960,16 @@ export function MapExperience() {
         </button>
         </div>
           <div
-            aria-label={tr("Choisir le fond de carte", "Choose a base map")}
+            aria-label={t("mapExperience.chooseABaseMap")}
             className={`invisible absolute right-[72px] bottom-0 grid w-[230px] origin-bottom-right scale-75 gap-2 rounded-[16px_13px_18px_14px] border-2 border-[#172322] bg-white p-3 text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_rgba(23,35,34,.3),0_10px_30px_rgba(0,0,0,.2)] max-[520px]:fixed max-[520px]:right-[max(74px,calc(env(safe-area-inset-right)+74px))] max-[520px]:bottom-[calc(140px+env(safe-area-inset-bottom))] max-[520px]:w-[210px] ${baseMapMenuOpen ? "" : "pointer-events-none"}`}
             ref={baseMapMenuRef}
             role="menu"
           >
-            <strong className="border-b border-dashed border-[#172322]/40 pb-2 text-sm">{tr("Fond de carte", "Base map")}</strong>
+            <strong className="border-b border-dashed border-[#172322]/40 pb-2 text-sm">{t("mapExperience.baseMap")}</strong>
             {([
-              { label: "Satellite", description: tr("Photographies aériennes", "Aerial imagery"), icon: "satellite", value: "satellite" },
-              { label: tr("Plan", "Map"), description: tr("Routes et lieux", "Roads and places"), icon: "map", value: "plan" },
-              { label: tr("Relief", "Terrain"), description: tr("Terrain et altitude", "Terrain and elevation"), icon: "terrain", value: "terrain" },
+              { label: "Satellite", description: t("mapExperience.aerialImagery"), icon: "satellite", value: "satellite" },
+              { label: t("mapExperience.map"), description: t("mapExperience.roadsAndPlaces"), icon: "map", value: "plan" },
+              { label: t("mapExperience.terrain"), description: t("mapExperience.terrainAndElevation"), icon: "terrain", value: "terrain" },
             ] as const).map((option) => (
               <button
                 aria-checked={!darkMap && baseMap === option.value}
@@ -1882,8 +2013,8 @@ export function MapExperience() {
             >
               <span className="grid size-8 place-items-center rounded-[48%_52%_46%_54%] border border-current"><SketchIcon name="theme" /></span>
               <span className="grid">
-                <strong className="text-xs">{tr("Nuit", "Night")}</strong>
-                <small className={`text-[.62rem] ${darkMap ? "text-white/70" : "text-[#5d6d69]"}`}>{tr("Carte sombre", "Dark map")}</small>
+                <strong className="text-xs">{t("mapExperience.night")}</strong>
+                <small className={`text-[.62rem] ${darkMap ? "text-white/70" : "text-[#5d6d69]"}`}>{t("mapExperience.darkMap")}</small>
               </span>
               <span aria-hidden className={`text-base font-black ${darkMap ? "opacity-100" : "opacity-0"}`}>✓</span>
             </button>
@@ -1901,30 +2032,30 @@ export function MapExperience() {
                 <button className="hidden cursor-pointer border-0 bg-transparent p-0 text-lg font-black max-[520px]:block" onClick={() => setMobileMoreSection("root")} type="button">←</button>
               )}
               <strong className="text-[.95rem]">
-                {mobileMoreSection === "layers" ? tr("Couches de la carte", "Map layers") : mobileMoreSection === "measure" ? tr("Mesurer", "Measure") : mobileMoreSection === "sources" ? tr("Sources", "Sources") : mobileMoreSection === "watch" ? tr("Surveiller un lieu", "Watch a place") : tr("Autres outils", "Other tools")}
+                {mobileMoreSection === "layers" ? t("mapExperience.mapLayers") : mobileMoreSection === "measure" ? t("mapExperience.measure") : mobileMoreSection === "sources" ? t("mapExperience.sources") : mobileMoreSection === "watch" ? t("mapExperience.watchAPlace") : t("mapExperience.otherTools")}
               </strong>
             </div>
-            <button aria-label={tr("Fermer", "Close")} className="flex size-8 rotate-[.8deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-[1.4rem] text-[#172322] shadow-[1px_1px_0_rgba(23,35,34,.25)]" onClick={() => setMoreToolsOpen(false)} type="button">×</button>
+            <button aria-label={t("mapExperience.close")} className="flex size-8 rotate-[.8deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-[1.4rem] text-[#172322] shadow-[1px_1px_0_rgba(23,35,34,.25)]" onClick={() => setMoreToolsOpen(false)} type="button">×</button>
           </div>
         {mobileMoreSection === "root" && (
           <div className="hidden gap-2 max-[520px]:grid">
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("layers")} type="button">
-              <SketchIcon name="layers" /><span>{tr("Couches de la carte", "Map layers")}</span>
+              <SketchIcon name="layers" /><span>{t("mapExperience.mapLayers")}</span>
               {activeLayerCount > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-[48%_52%_45%_55%] border-2 border-white bg-[#d9482f] text-[.62rem] font-black text-white shadow-[1px_1px_0_rgba(23,35,34,.35)]">{activeLayerCount}</span>}
               <span className="ml-auto">›</span>
             </button>
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("measure")} type="button">
-              <SketchIcon name="distance" /><span>{tr("Mesurer", "Measure")}</span>
+              <SketchIcon name="distance" /><span>{t("mapExperience.measure")}</span>
               {activeMeasureCount > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-[48%_52%_45%_55%] border-2 border-white bg-[#d9482f] text-[.62rem] font-black text-white shadow-[1px_1px_0_rgba(23,35,34,.35)]">{activeMeasureCount}</span>}
               <span className="ml-auto">›</span>
             </button>
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("watch")} type="button">
-              <SketchIcon name="watch" /><span>{tr("Surveiller un lieu", "Watch a place")}</span>
+              <SketchIcon name="watch" /><span>{t("mapExperience.watchAPlace")}</span>
               {activeWatchCount > 0 && <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-[48%_52%_45%_55%] border-2 border-white bg-[#d9482f] text-[.62rem] font-black text-white shadow-[1px_1px_0_rgba(23,35,34,.35)]">{activeWatchCount}</span>}
               <span className="ml-auto">›</span>
             </button>
             <button className={mobileSecondaryButtonClass} onClick={() => setMobileMoreSection("sources")} type="button">
-              <SketchIcon name="sources" /><span>{tr("Sources des données", "Data sources")}</span>
+              <SketchIcon name="sources" /><span>{t("mapExperience.dataSources")}</span>
               <span className="ml-auto">›</span>
             </button>
             <div className="mt-1 flex items-center justify-center gap-3 border-t border-dashed border-[#172322]/40 pt-2">
@@ -1936,50 +2067,50 @@ export function MapExperience() {
         )}
         {mobileMoreSection === "measure" && (
           <div className="hidden gap-2 max-[520px]:grid">
-            <button className={`${mobileSecondaryButtonClass} ${measureDistance ? mobileSecondaryActiveClass : ""}`} onClick={() => { setMeasureArea(false); setMeasureDistance(true); setMoreToolsOpen(false); }} type="button"><SketchIcon name="distance" /><span>{tr("Mesurer une distance", "Measure distance")}</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${measureArea ? mobileSecondaryActiveClass : ""}`} onClick={() => { setMeasureDistance(false); setMeasureArea(true); setMoreToolsOpen(false); }} type="button"><SketchIcon name="area" /><span>{tr("Mesurer une surface", "Measure area")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${measureDistance ? mobileSecondaryActiveClass : ""}`} onClick={() => { setMeasureArea(false); setMeasureDistance(true); setMoreToolsOpen(false); }} type="button"><SketchIcon name="distance" /><span>{t("mapExperience.measureDistance")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${measureArea ? mobileSecondaryActiveClass : ""}`} onClick={() => { setMeasureDistance(false); setMeasureArea(true); setMoreToolsOpen(false); }} type="button"><SketchIcon name="area" /><span>{t("mapExperience.measureArea")}</span></button>
           </div>
         )}
         {mobileMoreSection === "layers" && (
           <div className="hidden gap-2 max-[520px]:grid">
-            <button className={`${mobileSecondaryButtonClass} ${showWind ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowWind((visible) => !visible)} type="button"><SketchIcon name="wind" /><span>{tr("Vent", "Wind")}</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showAirQuality ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowAirQuality((visible) => !visible)} type="button"><SketchIcon name="air" /><span>{tr("Fumée et qualité de l’air", "Smoke and air quality")}</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showForestWeather ? mobileSecondaryActiveClass : ""}`} onClick={() => { const visible = !showForestWeather; setShowForestWeather(visible); if (visible && (forestWeatherState.status === "idle" || forestWeatherState.status === "error")) void loadForestWeather(); }} type="button"><SketchIcon name="danger" /><span>{tr("Danger feu de forêt", "Wildfire danger")}</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showNearbyPlaces ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowNearbyPlaces((visible) => { if (!visible) void loadNearbyPlaces(); return !visible; })} type="button"><SketchIcon name="exposed" /><span>{tr("Lieux exposés", "Exposed places")}</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showForest ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowForest((visible) => !visible)} type="button"><SketchIcon name="forest" /><span>{tr("Végétation IGN", "IGN vegetation")}</span></button>
-            <button className={`${mobileSecondaryButtonClass} ${showHistory ? mobileSecondaryActiveClass : ""}`} onClick={() => { setShowHistory((visible) => !visible); setHistoryPlaying(false); }} type="button"><SketchIcon name="history" /><span>{tr("Historique BDIFF", "BDIFF history")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showWind ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowWind((visible) => !visible)} type="button"><SketchIcon name="wind" /><span>{t("mapExperience.wind")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showAirQuality ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowAirQuality((visible) => !visible)} type="button"><SketchIcon name="air" /><span>{t("mapExperience.smokeAndAirQuality")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showForestWeather ? mobileSecondaryActiveClass : ""}`} onClick={() => { const visible = !showForestWeather; setShowForestWeather(visible); if (visible && (forestWeatherState.status === "idle" || forestWeatherState.status === "error")) void loadForestWeather(); }} type="button"><SketchIcon name="danger" /><span>{t("mapExperience.wildfireDanger")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showNearbyPlaces ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowNearbyPlaces((visible) => { if (!visible) void loadNearbyPlaces(); return !visible; })} type="button"><SketchIcon name="exposed" /><span>{t("mapExperience.exposedPlaces")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showForest ? mobileSecondaryActiveClass : ""}`} onClick={() => setShowForest((visible) => !visible)} type="button"><SketchIcon name="forest" /><span>{t("mapExperience.ignVegetation")}</span></button>
+            <button className={`${mobileSecondaryButtonClass} ${showHistory ? mobileSecondaryActiveClass : ""}`} onClick={() => { setShowHistory((visible) => !visible); setHistoryPlaying(false); }} type="button"><SketchIcon name="history" /><span>{t("mapExperience.bdiffHistory")}</span></button>
           </div>
         )}
         {mobileMoreSection === "watch" && (
           <div className="hidden gap-2 text-xs max-[520px]:grid">
-            <p className="m-0 text-[#5d6d69]">{tr("Sélectionne un point sur la carte ou recherche une adresse.", "Select a point on the map or search for an address.")}</p>
+            <p className="m-0 text-[#5d6d69]">{t("mapExperience.selectAPointOnTheMapOrSearch")}</p>
             {selectedLocation ? (
               <>
                 <strong>{selectedLocation.label}</strong>
-                <button className={mobileSecondaryButtonClass} onClick={() => { saveSelectedLocation(); setMoreToolsOpen(false); }} type="button"><SketchIcon name="watch" /><span>{tr("Surveiller ce lieu", "Watch this place")}</span></button>
+                <button className={mobileSecondaryButtonClass} onClick={() => { saveSelectedLocation(); setMoreToolsOpen(false); }} type="button"><SketchIcon name="watch" /><span>{t("mapExperience.watchThisPlace")}</span></button>
               </>
-            ) : <p className="m-0 rounded-lg border border-dashed border-[#263532] p-2">{tr("Aucun lieu sélectionné.", "No place selected.")}</p>}
+            ) : <p className="m-0 rounded-lg border border-dashed border-[#263532] p-2">{t("mapExperience.noPlaceSelected")}</p>}
           </div>
         )}
         {mobileMoreSection === "sources" && (
           <div className="hidden gap-3 text-xs max-[520px]:grid">
-            <p className="m-0 font-bold text-[#5d6d69]">{tr("Les données visibles ne décrivent pas toutes la même chose.", "The visible datasets do not all describe the same thing.")}</p>
+            <p className="m-0 font-bold text-[#5d6d69]">{t("mapExperience.theVisibleDatasetsDoNotAllDescribeThe")}</p>
             <dl className="m-0 grid gap-2 [&_dd]:m-0 [&_dd]:text-[#5d6d69] [&_dt]:font-extrabold">
-              <div><dt>{tr("Feux détectés", "Detected fires")}</dt><dd>NASA LANCE FIRMS · VIIRS.</dd></div>
-              <div><dt>{tr("Périmètres et historique", "Perimeters and history")}</dt><dd>EFFIS and BDIFF.</dd></div>
-              <div><dt>{tr("Vent, fumée et qualité de l’air", "Wind, smoke and air quality")}</dt><dd>Open-Meteo, Météo-France and CAMS.</dd></div>
-              <div><dt>{tr("Adresses et végétation", "Addresses and vegetation")}</dt><dd>IGN · Géoplateforme.</dd></div>
-              <div><dt>{tr("Fonds cartographiques", "Base maps")}</dt><dd>Esri, Maxar, Earthstar and the GIS community.</dd></div>
-              <div><dt>{tr("Observations citoyennes", "Community observations")}</dt><dd>{tr("Contributions non vérifiées par défaut.", "Contributions are unverified by default.")}</dd></div>
+              <div><dt>{t("mapExperience.detectedFires")}</dt><dd>NASA LANCE FIRMS · VIIRS.</dd></div>
+              <div><dt>{t("mapExperience.perimetersAndHistory")}</dt><dd>EFFIS and BDIFF.</dd></div>
+              <div><dt>{t("mapExperience.windSmokeAndAirQuality")}</dt><dd>Open-Meteo, Météo-France and CAMS.</dd></div>
+              <div><dt>{t("mapExperience.addressesAndVegetation")}</dt><dd>IGN · Géoplateforme.</dd></div>
+              <div><dt>{t("mapExperience.baseMaps")}</dt><dd>Esri, Maxar, Earthstar and the GIS community.</dd></div>
+              <div><dt>{t("mapExperience.communityObservations")}</dt><dd>{t("mapExperience.contributionsAreUnverifiedByDefault")}</dd></div>
             </dl>
-            <p className="m-0 border-t border-dashed border-[#263532]/50 pt-3 text-[.68rem] font-bold text-[#5d6d69]">{tr("Une détection satellite ne confirme ni un incendie ni une surface brûlée.", "A satellite detection confirms neither a wildfire nor a burned area.")}</p>
+            <p className="m-0 border-t border-dashed border-[#263532]/50 pt-3 text-[.68rem] font-bold text-[#5d6d69]">{t("mapExperience.aSatelliteDetectionConfirmsNeitherAWildfireNor")}</p>
           </div>
         )}
         <button
-          aria-label={showAirQuality ? tr("Masquer la qualité de l’air", "Hide air quality") : tr("Afficher la qualité de l’air", "Show air quality")}
+          aria-label={showAirQuality ? t("mapExperience.hideAirQuality") : t("mapExperience.showAirQuality")}
           aria-pressed={showAirQuality}
           className={`sketch-tool-button secondary-tool-row max-[520px]:!hidden ${showAirQuality ? "active" : ""}`}
-          data-tooltip={tr("Fumée et qualité de l’air", "Smoke and air quality")}
+          data-tooltip={t("mapExperience.smokeAndAirQuality")}
           onClick={() => setShowAirQuality((visible) => !visible)}
           type="button"
         >
@@ -1988,21 +2119,21 @@ export function MapExperience() {
         <details className="watch-tool official-tool max-[520px]:!hidden">
           <summary
             className={`sketch-tool-button ${officialNotices.length ? "active" : ""}`}
-            data-tooltip={tr("Consignes officielles", "Official guidance")}
+            data-tooltip={t("mapExperience.officialGuidance")}
           >
             <SketchIcon name="official" />
           </summary>
           <div className="watch-panel official-panel">
-            <strong>{tr("Consignes officielles", "Official guidance")}</strong>
-            {officialNoticesStatus === "loading" && <p>{tr("Recherche des informations vérifiées…", "Searching verified information…")}</p>}
+            <strong>{t("mapExperience.officialGuidance")}</strong>
+            {officialNoticesStatus === "loading" && <p>{t("mapExperience.searchingVerifiedInformation")}</p>}
             {officialNoticesStatus === "error" && (
               <p className="official-warning">
-                {tr("Le flux d’informations ne répond pas. Consultez les autorités locales et suivez FR-Alert.", "The information feed is not responding. Check local authorities and follow FR-Alert.")}
+                {t("mapExperience.theInformationFeedIsNotRespondingCheckLocal")}
               </p>
             )}
             {officialNoticesStatus === "ready" && officialNotices.length === 0 && (
               <p className="official-warning">
-                {tr("Aucune consigne officielle n’est actuellement intégrée à cette carte. Cela ne signifie pas qu’il n’existe aucune restriction, évacuation ou alerte.", "No official guidance is currently integrated into this map. This does not mean there are no restrictions, evacuations or alerts.")}
+                {t("mapExperience.noOfficialGuidanceIsCurrentlyIntegratedIntoThis")}
               </p>
             )}
             {officialNotices.map((notice) => (
@@ -2014,18 +2145,18 @@ export function MapExperience() {
                   <ul>{notice.instructions.map((instruction) => <li key={instruction}>{instruction}</li>)}</ul>
                 )}
                 <a href={notice.sourceUrl} rel="noreferrer" target="_blank">
-                  {tr("Vérifier auprès de", "Verify with")} {notice.sourceName}
+                  {t("mapExperience.verifyWith")} {notice.sourceName}
                 </a>
               </article>
             ))}
-            <p>{tr("En urgence : appelez le 112. Les consignes des autorités restent prioritaires.", "In an emergency, call 112. Official guidance always takes priority.")}</p>
+            <p>{t("mapExperience.inAnEmergencyCall112OfficialGuidanceAlways")}</p>
           </div>
         </details>
         <button
-          aria-label={showForestWeather ? tr("Masquer le danger Météo des forêts", "Hide forest fire danger") : tr("Afficher le danger Météo des forêts", "Show forest fire danger")}
+          aria-label={showForestWeather ? t("mapExperience.hideForestFireDanger") : t("mapExperience.showForestFireDanger")}
           aria-pressed={showForestWeather}
           className={`sketch-tool-button max-[520px]:!hidden ${showForestWeather ? "active" : ""}`}
-          data-tooltip={tr("Danger feu de forêt", "Wildfire danger")}
+          data-tooltip={t("mapExperience.wildfireDanger")}
           onClick={() => {
             const visible = !showForestWeather;
             setShowForestWeather(visible);
@@ -2038,10 +2169,10 @@ export function MapExperience() {
           <SketchIcon name="danger" />
         </button>
         <button
-          aria-label={showNearbyPlaces ? tr("Masquer les lieux exposés", "Hide exposed places") : tr("Afficher les lieux exposés", "Show exposed places")}
+          aria-label={showNearbyPlaces ? t("mapExperience.hideExposedPlaces") : t("mapExperience.showExposedPlaces")}
           aria-pressed={showNearbyPlaces}
           className={`sketch-tool-button max-[520px]:!hidden ${showNearbyPlaces ? "active" : ""}`}
-          data-tooltip={tr("Lieux exposés", "Exposed places")}
+          data-tooltip={t("mapExperience.exposedPlaces")}
           onClick={() => {
             setShowNearbyPlaces((visible) => {
               if (!visible) void loadNearbyPlaces();
@@ -2053,17 +2184,17 @@ export function MapExperience() {
           <SketchIcon name="exposed" />
         </button>
         <button
-          aria-label={showForest ? tr("Masquer la végétation forestière", "Hide forest vegetation") : tr("Afficher la végétation forestière", "Show forest vegetation")}
+          aria-label={showForest ? t("mapExperience.hideForestVegetation") : t("mapExperience.showForestVegetation")}
           aria-pressed={showForest}
           className={`sketch-tool-button max-[520px]:!hidden ${showForest ? "active" : ""}`}
-          data-tooltip={tr("Végétation IGN", "IGN vegetation")}
+          data-tooltip={t("mapExperience.ignVegetation")}
           onClick={() => setShowForest((visible) => !visible)}
           type="button"
         >
           <SketchIcon name="forest" />
         </button>
         <button
-          aria-label={showHistory ? tr("Masquer l’historique des feux", "Hide fire history") : tr("Afficher l’historique des feux", "Show fire history")}
+          aria-label={showHistory ? t("mapExperience.hideFireHistory") : t("mapExperience.showFireHistory")}
           aria-pressed={showHistory}
           className={`sketch-tool-button max-[520px]:!hidden ${showHistory ? "active" : ""}`}
           data-tooltip="Historique BDIFF"
@@ -2076,22 +2207,22 @@ export function MapExperience() {
           <SketchIcon name="history" />
         </button>
         <details className="watch-tool max-[520px]:!hidden">
-          <summary className="sketch-tool-button" data-tooltip={tr("Surveiller un lieu", "Watch a place")}>
+          <summary className="sketch-tool-button" data-tooltip={t("mapExperience.watchAPlace")}>
             <SketchIcon name="watch" />
           </summary>
           <div className="watch-panel">
-            <strong>{tr("Surveiller un lieu", "Watch a place")}</strong>
-            <p>{tr("Cliquez sur la carte ou recherchez une adresse, puis enregistrez ce point.", "Click the map or search for an address, then save that point.")}</p>
+            <strong>{t("mapExperience.watchAPlace")}</strong>
+            <p>{t("mapExperience.clickTheMapOrSearchForAnAddress")}</p>
             {selectedLocation ? (
               <div className="location-summary">
                 <strong>{selectedLocation.label}</strong>
-                {positionAccuracy !== null && <span>{tr("Précision", "Accuracy")}: {tr("environ", "approximately")} {Math.round(positionAccuracy)} m</span>}
+                {positionAccuracy !== null && <span>{t("mapExperience.accuracy")}: {t("mapExperience.approximately")} {Math.round(positionAccuracy)} m</span>}
                 {closestIncident
-                  ? <span>{tr("Signal affiché le plus proche", "Nearest displayed signal")}: {formatDistance(closestIncident.distance)}</span>
-                  : <span>{tr("Aucun signal affiché dans la période observée.", "No displayed signal during the observed period.")}</span>}
+                  ? <span>{t("mapExperience.nearestDisplayedSignal")}: {formatDistance(closestIncident.distance)}</span>
+                  : <span>{t("mapExperience.noDisplayedSignalDuringTheObservedPeriod")}</span>}
                 <button className="filter-button" onClick={saveSelectedLocation}>☆ Surveiller ce lieu</button>
               </div>
-            ) : <p className="map-click-hint">{tr("Aucun lieu sélectionné.", "No place selected.")}</p>}
+            ) : <p className="map-click-hint">{t("mapExperience.noPlaceSelected")}</p>}
             {savedLocation && (
               <div className="location-alerts">
                 <strong>{savedLocation.label}</strong>
@@ -2104,7 +2235,7 @@ export function MapExperience() {
                   Activer les alertes
                 </label>
                 <label>
-                  <span>{tr("Rayon", "Radius")}</span>
+                  <span>{t("mapExperience.radius")}</span>
                   <select
                     disabled={!alertEnabled}
                     onChange={(event) => {
@@ -2122,7 +2253,7 @@ export function MapExperience() {
                     {[5, 10, 25, 50].map((radius) => <option key={radius} value={radius}>{radius} km</option>)}
                   </select>
                 </label>
-                <button className="filter-button" onClick={removeSavedLocation}>{tr("Retirer ce lieu", "Remove this place")}</button>
+                <button className="filter-button" onClick={removeSavedLocation}>{t("mapExperience.removeThisPlace")}</button>
                 <p className="layer-status">
                   {backgroundAlertStatus === "active" && "Vérification périodique activée. "}
                   {backgroundAlertStatus === "unsupported" && "Arrière-plan non pris en charge. "}
@@ -2143,25 +2274,23 @@ export function MapExperience() {
       >
         <button
           aria-expanded={signalSummaryOpen}
-          className={`relative inline-flex min-h-[54px] cursor-pointer select-none items-center gap-[9px] rounded-[17px_14px_19px_15px] border-2 border-[#172322] bg-[rgba(255,255,255,.96)] px-[11px] py-[7px] pl-2 text-[var(--ink)] shadow-[0_0_0_1px_rgba(255,255,255,.88),3px_3px_0_rgba(23,35,34,.25)] [transform:rotate(-.45deg)] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[15px_18px_14px_19px] after:border after:border-[rgba(23,35,34,.42)] after:content-[''] focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[#8ce1dd] max-[720px]:min-h-[50px] max-[720px]:px-[9px] max-[720px]:py-1.5 max-[720px]:pl-[7px] ${signalSummaryOpen ? "m-1 w-[calc(100%-8px)] transform-none rounded-lg border-transparent bg-transparent shadow-none after:hidden" : ""}`}
+          className={`relative inline-flex min-h-[54px] cursor-pointer select-none items-center gap-[9px] rounded-[17px_14px_19px_15px] border-2 border-[#172322] bg-[rgba(255,255,255,.96)] px-[11px] py-[7px] pl-2 text-[var(--ink)] shadow-[0_0_0_1px_rgba(255,255,255,.88),3px_3px_0_rgba(23,35,34,.25)] [transform:rotate(-.45deg)] after:pointer-events-none after:absolute after:inset-[2px_-3px_-2px_2px] after:rounded-[15px_18px_14px_19px] after:border after:border-[rgba(23,35,34,.42)] after:content-[''] focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[#8ce1dd] max-[720px]:min-h-[50px] max-[720px]:px-[9px] max-[720px]:py-1.5 max-[720px]:pl-[7px] ${signalSummaryOpen ? "m-1 w-[calc(100%-8px)] transform-none rounded-lg border-transparent bg-transparent shadow-none after:hidden" : ""} ${(isRefreshing || state.status === "loading") ? "signal-summary-loading" : ""}`}
           onClick={() => setSignalSummaryOpen((open) => !open)}
           type="button"
         >
           <span className={`relative flex size-[38px] shrink-0 items-center justify-center overflow-hidden rounded-[48%_52%_44%_56%] border-[1.7px] border-[var(--fire)] bg-[rgba(255,246,242,.98)] text-[var(--fire)] [transform:rotate(-2deg)] [&_.hand-drawn-tool-icon]:size-6 ${isRefreshing ? "after:absolute after:inset-0 after:animate-ping after:rounded-full after:border after:border-[rgba(214,48,38,.35)] after:content-['']" : ""}`}>
-            {isRefreshing
-              ? <Image alt="" aria-hidden className="size-7 animate-pulse object-contain" height={28} src="/logo.png" width={28} />
-              : <SketchIcon name="fire" />}
+            <SketchIcon name="fire" />
           </span>
           <span className="grid text-left leading-[1.05] [&_strong]:text-[.8rem]">
             <strong>
               {state.status === "ready"
-                ? `${visibleIncidents.length} ${tr(visibleIncidents.length === 1 ? "signal" : "signaux", visibleIncidents.length === 1 ? "signal" : "signals")}`
-                : state.status === "loading" ? tr("Recherche en cours", "Searching") : tr("Données indisponibles", "Data unavailable")}
+                ? `${visibleIncidents.length} ${t(visibleIncidents.length === 1 ? "mapExperience.signal" : "mapExperience.signals")}`
+                : state.status === "loading" ? t("mapExperience.searching2") : t("mapExperience.dataUnavailable")}
             </strong>
             <small className="mt-1 text-[.62rem] text-[var(--muted)]">
               {isRefreshing
-                ? tr("Recherche dans cette zone…", "Searching this area…")
-                : state.status === "ready" ? satelliteUpdateLabel : tr("Touchez pour les détails", "Tap for details")}
+                ? t("mapExperience.searchingThisArea")
+                : state.status === "ready" ? satelliteUpdateLabel : t("mapExperience.tapForDetails")}
             </small>
           </span>
           <span className={`ml-auto font-['Comic_Sans_MS','Bradley_Hand',cursive] text-[1.2rem] transition-transform duration-300 ${signalSummaryOpen ? "rotate-180" : ""}`} aria-hidden>⌄</span>
@@ -2170,33 +2299,33 @@ export function MapExperience() {
         <div className="min-h-0 overflow-hidden">
         <div className="border-t-[1.5px] border-dashed border-[rgba(38,53,50,.58)] px-[13px] pb-[13px] pt-[11px]">
         <div className="flex flex-wrap gap-[5px]">
-          <span className="badge badge-satellite">🔥 {tr("SIGNAUX SATELLITE", "SATELLITE SIGNALS")}</span>
+          <span className="badge badge-satellite">🔥 {t("mapExperience.satelliteSignals")}</span>
           <span className={`quality-badge ${dataQuality.className}`}>{dataQuality.label}</span>
         </div>
-        {state.status === "loading" && <><h1>{tr("Recherche des dernières détections…", "Searching for the latest detections…")}</h1><p>{tr("Interrogation des capteurs VIIRS.", "Querying VIIRS sensors.")}</p></>}
-        {state.status === "error" && <><h1>{tr("Source satellite indisponible", "Satellite source unavailable")}</h1><p>{state.message}</p><p>{tr("Aucune donnée affichée ne signifie pas qu’il n’y a pas de feu.", "No displayed data does not mean there is no fire.")}</p></>}
+        {state.status === "loading" && <><h1>{t("mapExperience.searchingForTheLatestDetections")}</h1><p>{t("mapExperience.queryingViirsSensors")}</p></>}
+        {state.status === "error" && <><h1>{t("mapExperience.satelliteSourceUnavailable")}</h1><p>{state.message}</p><p>{t("mapExperience.noDisplayedDataDoesNotMeanThereIs")}</p></>}
         {state.status === "ready" && (
           <>
-            <h1>{visibleIncidents.length} {tr(visibleIncidents.length === 1 ? "signal vu récemment" : "signaux vus récemment", visibleIncidents.length === 1 ? "recent signal" : "recent signals")}</h1>
+            <h1>{visibleIncidents.length} {t(visibleIncidents.length === 1 ? "mapExperience.recentSignal" : "mapExperience.recentSignals")}</h1>
             <p className="!mt-2 border-l-[3px] border-[var(--fire)] py-1.5 pl-[9px] font-bold leading-[1.4]">
               {visibleIncidents.length === 0
-                ? tr("Aucun signal satellite visible dans la période choisie.", "No satellite signal is visible during the selected period.")
+                ? t("mapExperience.noSatelliteSignalIsVisibleDuringTheSelected")
                 : priorityZones.some((zone) => zone.summary.trend === "rising")
-                  ? tr("Des regroupements de chaleur semblent augmenter. Une vérification locale reste nécessaire.", "Heat clusters appear to be increasing. Local verification is still required.")
+                  ? t("mapExperience.heatClustersAppearToBeIncreasingLocalVerification")
                   : priorityZones.length >= 3
-                    ? tr("Plusieurs regroupements de chaleur sont visibles sur la carte.", "Several heat clusters are visible on the map.")
-                    : tr("Une activité thermique récente est visible sur la carte.", "Recent thermal activity is visible on the map.")}
+                    ? t("mapExperience.severalHeatClustersAreVisibleOnTheMap")
+                    : t("mapExperience.recentThermalActivityIsVisibleOnTheMap")}
             </p>
             <p className="text-[var(--muted)]">
               <strong>{satelliteUpdateLabel}.</strong>
               <br />
-              {latestIncident ? tr(`Dernier signal observé ${formatAge(latestIncident.observedAt, new Date(clock))}.`, `Latest signal observed ${formatAge(latestIncident.observedAt, new Date(clock), "en")}.`) : tr("Aucun signal récent dans la zone visible.", "No recent signal in the visible area.")}
+              {latestIncident ? t("mapExperience.latestSignalObserved", { age: formatAge(latestIncident.observedAt, new Date(clock), locale === "fr-FR" ? "fr" : "en") }) : t("mapExperience.noRecentSignalInTheVisibleArea")}
             </p>
           </>
         )}
         {priorityZones.length > 0 && (
-          <section className="mt-2 grid gap-1 border-t border-[var(--line)] pt-[7px]" aria-label={tr("Zones prioritaires", "Priority areas")}>
-            <div className="flex items-center justify-between text-[.72rem]"><strong>{tr("Secteurs à regarder", "Areas to review")}</strong><span className="text-[.62rem] text-[var(--muted)]">{tr("Satellite · à confirmer", "Satellite · requires confirmation")}</span></div>
+          <section className="mt-2 grid gap-1 border-t border-[var(--line)] pt-[7px]" aria-label={t("mapExperience.priorityAreas")}>
+            <div className="flex items-center justify-between text-[.72rem]"><strong>{t("mapExperience.areasToReview")}</strong><span className="text-[.62rem] text-[var(--muted)]">{t("mapExperience.satelliteRequiresConfirmation")}</span></div>
             {priorityZones.slice(0, 3).map((zone, index) => (
               <button
                 key={zone.id}
@@ -2228,11 +2357,31 @@ export function MapExperience() {
             ))}
           </section>
         )}
+        <section className="mt-2.5 border-t border-dashed border-[rgba(38,53,50,.55)] pt-2.5">
+          <button
+            className="flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-[8px_11px_7px_10px] border-[1.5px] border-[#9f3026] bg-[#fff6f2] px-3 py-2 text-left text-[#172322] shadow-[2px_2px_0_rgba(23,35,34,.14)]"
+            onClick={openEmergencyPanel}
+            type="button"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#b92f22] text-[#b92f22]">
+              <SketchIcon name="official" />
+            </span>
+            <span className="grid gap-0.5">
+              <strong className="text-[.78rem]">{t("mapExperience.needHelp")}</strong>
+              <small className="text-[.66rem] text-muted">
+                {detectedEmergencyCountryName
+                  ? t("mapExperience.emergencyHelpInCountry", { country: detectedEmergencyCountryName })
+                  : t("mapExperience.viewVerifiedNumbers")}
+              </small>
+            </span>
+            <span className="ml-auto text-lg" aria-hidden>›</span>
+          </button>
+        </section>
         {state.status === "ready" && (
           <details className="group/technical mt-[10px] border-t border-[rgba(38,53,50,.45)] pt-[9px]">
-            <summary className="cursor-pointer text-[.72rem] font-extrabold text-[#40514e] group-open/technical:mb-[7px]">{tr("Détails techniques", "Technical details")}</summary>
-            <p>{tr("Source : NASA FIRMS · capteurs VIIRS.", "Source: NASA FIRMS · VIIRS sensors.")}</p>
-            <p>{tr("Le halo rouge et jaune fusionne visuellement les signaux proches selon leur fraîcheur et leur puissance radiative.", "The red and yellow halo visually merges nearby signals based on recency and radiative power.")}</p>
+            <summary className="cursor-pointer text-[.72rem] font-extrabold text-[#40514e] group-open/technical:mb-[7px]">{t("mapExperience.technicalDetails")}</summary>
+            <p>{t("mapExperience.sourceNasaFirmsViirsSensors")}</p>
+            <p>{t("mapExperience.theRedAndYellowHaloVisuallyMergesNearby")}</p>
             <p>{satelliteUpdateLabel}{state.partial ? " · résultat partiel" : ""}.</p>
             {deduplicatedIncidents.length < state.incidents.length && (
               <p>{state.incidents.length - deduplicatedIncidents.length} doublon{state.incidents.length - deduplicatedIncidents.length > 1 ? "s" : ""} fusionné{state.incidents.length - deduplicatedIncidents.length > 1 ? "s" : ""}.</p>
@@ -2247,7 +2396,7 @@ export function MapExperience() {
                 {isRefreshing ? "Actualisation…" : "↻ Actualiser"}
               </button>
             </div>
-            <p className="!mt-1.5 !text-[.72rem] leading-[1.35] text-[var(--muted)]">{tr("Le halo thermique est indicatif : il ne représente ni un périmètre de feu ni une surface brûlée.", "The thermal halo is indicative: it represents neither a fire perimeter nor a burned area.")}</p>
+            <p className="!mt-1.5 !text-[.72rem] leading-[1.35] text-[var(--muted)]">{t("mapExperience.theThermalHaloIsIndicativeItRepresentsNeither")}</p>
           </details>
         )}
         </div>

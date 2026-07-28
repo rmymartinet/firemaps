@@ -8,7 +8,7 @@ import { useLanguage } from "@/i18n/language-context";
 type AuthMode = "forgot-password" | "sign-in" | "sign-up";
 
 export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => void } = {}) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   const { data: session, isPending } = authClient.useSession();
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [error, setError] = useState<string | null>(null);
@@ -28,14 +28,14 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
       : await authClient.signIn.email({ email, password });
 
     if (result.error) {
-      setError(result.error.message || tr("La connexion a échoué.", "Sign-in failed."));
+      setError(result.error.message || t("authAccountPanel.signInFailed"));
     } else {
       onAuthenticated?.();
     }
     setSubmitting(false);
   };
 
-  if (isPending) return <p className="m-0 text-xs text-muted">{tr("Vérification du compte…", "Checking your account…")}</p>;
+  if (isPending) return <p className="m-0 text-xs text-muted">{t("authAccountPanel.checkingYourAccount")}</p>;
 
   if (session?.user) {
     return (
@@ -49,7 +49,7 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
           onClick={() => authClient.signOut()}
           type="button"
         >
-          {tr("Se déconnecter", "Sign out")}
+          {t("authAccountPanel.signOut")}
         </button>
       </div>
     );
@@ -62,21 +62,21 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-2 gap-1 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] p-1">
-        <button className={`min-h-9 rounded-[8px_6px_9px_7px] border-0 text-xs font-extrabold ${mode === "sign-in" ? "bg-[#172322] text-white" : "bg-transparent"}`} onClick={() => setMode("sign-in")} type="button">{tr("Connexion", "Sign in")}</button>
-        <button className={`min-h-9 rounded-[8px_6px_9px_7px] border-0 text-xs font-extrabold ${mode === "sign-up" ? "bg-[#172322] text-white" : "bg-transparent"}`} onClick={() => setMode("sign-up")} type="button">{tr("Créer un compte", "Create account")}</button>
+        <button className={`min-h-9 rounded-[8px_6px_9px_7px] border-0 text-xs font-extrabold ${mode === "sign-in" ? "bg-[#172322] text-white" : "bg-transparent"}`} onClick={() => setMode("sign-in")} type="button">{t("authAccountPanel.signIn")}</button>
+        <button className={`min-h-9 rounded-[8px_6px_9px_7px] border-0 text-xs font-extrabold ${mode === "sign-up" ? "bg-[#172322] text-white" : "bg-transparent"}`} onClick={() => setMode("sign-up")} type="button">{t("authAccountPanel.createAccount")}</button>
       </div>
       <form className="grid gap-2" onSubmit={submit}>
-        {mode === "sign-up" && <input className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" name="name" placeholder={tr("Prénom ou pseudonyme", "Name or nickname")} required />}
-        <input autoComplete="email" className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" name="email" placeholder={tr("Adresse e-mail", "Email address")} required type="email" />
-        <input autoComplete={mode === "sign-up" ? "new-password" : "current-password"} className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" minLength={10} name="password" placeholder={tr("Mot de passe · 10 caractères minimum", "Password · 10 characters minimum")} required type="password" />
+        {mode === "sign-up" && <input className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" name="name" placeholder={t("authAccountPanel.nameOrNickname")} required />}
+        <input autoComplete="email" className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" name="email" placeholder={t("authAccountPanel.emailAddress")} required type="email" />
+        <input autoComplete={mode === "sign-up" ? "new-password" : "current-password"} className="min-h-11 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm" minLength={10} name="password" placeholder={t("authAccountPanel.password10CharactersMinimum")} required type="password" />
         {mode === "sign-in" && (
           <button className="justify-self-end border-0 bg-transparent p-0 text-xs font-extrabold text-[#195e70] underline decoration-dashed underline-offset-4" onClick={() => setMode("forgot-password")} type="button">
-            {tr("Mot de passe oublié ?", "Forgot your password?")}
+            {t("authAccountPanel.forgotYourPassword")}
           </button>
         )}
         {error && <p className="m-0 text-xs font-bold text-[#9f291e]">{error}</p>}
         <button className="min-h-11 rounded-[9px_6px_11px_7px] border-2 border-[#172322] bg-[#172322] px-3 text-sm font-black text-white" disabled={submitting} type="submit">
-          {submitting ? tr("Un instant…", "Please wait…") : mode === "sign-up" ? tr("Créer mon compte", "Create my account") : tr("Se connecter", "Sign in")}
+          {submitting ? t("authAccountPanel.pleaseWait") : mode === "sign-up" ? t("authAccountPanel.createMyAccount") : t("authAccountPanel.signIn2")}
         </button>
       </form>
     </div>

@@ -34,6 +34,22 @@ Les attributions sont affichées sur la carte. Ces services publics servent au p
 Fournisseur : European Forest Fire Information System, Commission européenne / Joint Research Centre.
 
 - Accès : WMS public `https://maps.effis.emergency.copernicus.eu/effis`.
+
+## Numéros d’urgence
+
+- Référentiel initial : page officielle de la Commission européenne consacrée
+  au 112 (`https://digital-strategy.ec.europa.eu/en/policies/112`).
+- Couverture actuelle : les 27 pays de l’Union européenne avec le 112, ainsi que
+  les États-Unis avec le 911 vérifié par le National 911 Program
+  (`https://www.911.gov/`). Firemaps n’invente aucun numéro pour un pays absent
+  du référentiel.
+- Détection : `@rapideditor/country-coder` associe localement les coordonnées
+  WGS84 du point choisi (ou du centre de carte) à un code ISO 3166-1. Les
+  coordonnées ne sont pas transmises à un géocodeur tiers pour cette fonction.
+- Sécurité : le pays détecté reste visible et corrigeable, et un second geste
+  est requis avant d’ouvrir un lien `tel:`. Aucun appel automatique.
+- Extension mondiale prévue : intégrer progressivement les entrées vérifiées de
+  la base E.129 de l’UIT, avec source et date de vérification par pays.
 - Couche active : `modis.ba.poly.week`, zones des sept derniers jours issues du produit EFFIS MODIS/Sentinel‑2.
 - Couche rejetée pour l’interface : `effis.nrt.ba.poly`. Son regroupement automatique VIIRS produisait de grands blocs pouvant être interprétés à tort comme des périmètres fiables.
 - Fréquence : produit consolidé plus tardif que FIRMS ; EFFIS traite quotidiennement MODIS et peut raffiner certains périmètres avec Sentinel‑2.

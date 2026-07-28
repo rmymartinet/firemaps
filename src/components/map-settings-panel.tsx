@@ -52,11 +52,11 @@ function Choice<T extends string | number>({
   value: T;
 }) {
   return (
-    <div className="grid grid-flow-col auto-cols-fr gap-1 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] p-1 sm:grid-cols-3">
       {options.map((option) => (
         <button
           aria-pressed={value === option.value}
-          className={`min-h-9 rounded-[8px_6px_9px_7px] border-0 px-2 py-1.5 text-xs font-extrabold ${
+          className={`flex w-full items-center justify-center min-h-9 rounded-[8px_6px_9px_7px] border-0 px-2 py-1.5 text-xs font-extrabold transition-colors ${
             value === option.value ? "bg-[#172322] text-white" : "bg-transparent text-[#172322]"
           }`}
           key={option.value}
@@ -126,10 +126,22 @@ export function MapSettingsPanel({
   preferences: MapPreferences;
 }) {
   const panelRef = useRef<HTMLElement>(null);
-  const { language, setLanguage, tr } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const update = <K extends keyof MapPreferences>(key: K, value: MapPreferences[K]) => {
     onChange({ ...preferences, [key]: value });
   };
+  const languageLabel =
+    {
+      en: "English",
+      fr: "Français",
+      es: "Español",
+      it: "Italiano",
+      de: "Deutsch",
+      pt: "Português",
+      nl: "Nederlands",
+      pl: "Polski",
+      ar: "العربية",
+    }[language] ?? "English";
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -181,27 +193,37 @@ export function MapSettingsPanel({
   const section = "grid gap-3 rounded-[13px_10px_15px_11px] border-[1.5px] border-dashed border-[#263532] p-3";
   return (
     <aside
-      aria-label={tr("Réglages de la carte", "Map settings")}
+      aria-label={t("mapSettingsPanel.mapSettings")}
       aria-hidden={!open}
       className={`invisible fixed top-[141px] right-[84px] grid max-h-[min(calc(100dvh-159px),760px)] w-[360px] origin-top-right scale-[.82] rotate-[-.06deg] gap-3 overflow-y-auto rounded-[19px_15px_21px_16px] border-2 border-[#172322] bg-white p-3.5 text-[#172322] shadow-[0_0_0_1px_rgba(255,255,255,.9),2px_2px_0_1px_rgba(23,35,34,.38),0_10px_34px_rgba(0,0,0,.22)] max-[720px]:inset-x-0 max-[720px]:top-auto max-[720px]:bottom-0 max-[720px]:max-h-[84dvh] max-[720px]:w-full max-[720px]:origin-bottom max-[720px]:rounded-t-[20px] max-[720px]:rounded-b-none max-[720px]:px-3 max-[720px]:pt-3.5 max-[720px]:pb-[calc(16px+env(safe-area-inset-bottom))] ${open ? "" : "pointer-events-none"}`}
       ref={panelRef}
     >
       <header className="flex items-center justify-between border-b-[1.5px] border-dashed border-[#263532]/55 pb-2">
         <div>
-          <small className="font-black tracking-[.12em] uppercase">{tr("Préférences", "Preferences")}</small>
-          <h2 className="m-0 text-lg font-black">{tr("Réglages de la carte", "Map settings")}</h2>
+          <small className="font-black tracking-[.12em] uppercase">{t("mapSettingsPanel.preferences")}</small>
+          <h2 className="m-0 text-lg font-black">{t("mapSettingsPanel.mapSettings")}</h2>
         </div>
-        <button aria-label={tr("Fermer les réglages", "Close settings")} className="grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-2xl" onClick={onClose} type="button">×</button>
+        <button aria-label={t("mapSettingsPanel.closeSettings")} className="grid size-9 place-items-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-transparent text-2xl" onClick={onClose} type="button">×</button>
       </header>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Langue", "Language")}</strong>
-        <Setting label={tr("Langue de l’application", "Application language")}>
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{t("mapSettingsPanel.language")}</strong>
+        <div className="rounded-[10px_7px_12px_8px] border-[1.5px] border-dashed border-[#263532]/55 bg-[#f7f6f2] px-3 py-2 text-[.8rem] font-bold">
+          {t("mapSettingsPanel.applicationLanguage")}: <span className="font-black">{languageLabel}</span>
+        </div>
+        <Setting label={t("mapSettingsPanel.applicationLanguage")}>
           <Choice
             onChange={setLanguage}
             options={[
               { label: "Français", value: "fr" },
               { label: "English", value: "en" },
+              { label: "Español", value: "es" },
+              { label: "Italiano", value: "it" },
+              { label: "Deutsch", value: "de" },
+              { label: "Português", value: "pt" },
+              { label: "Nederlands", value: "nl" },
+              { label: "Polski", value: "pl" },
+              { label: "العربية", value: "ar" },
             ]}
             value={language}
           />
@@ -209,76 +231,76 @@ export function MapSettingsPanel({
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Affichage", "Display")}</strong>
-        <Setting label={tr("Police", "Font")}>
-          <Choice onChange={(value) => update("fontStyle", value)} options={[{ label: "Standard", value: "standard" }, { label: tr("Crayon", "Handwritten"), value: "hand" }]} value={preferences.fontStyle} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{t("mapSettingsPanel.display")}</strong>
+        <Setting label={t("mapSettingsPanel.font")}>
+          <Choice onChange={(value) => update("fontStyle", value)} options={[{ label: "Standard", value: "standard" }, { label: t("mapSettingsPanel.handwritten"), value: "hand" }]} value={preferences.fontStyle} />
         </Setting>
-        <Setting label={tr("Taille des points de feu", "Fire marker size")}>
-          <Choice onChange={(value) => update("markerSize", value)} options={[{ label: tr("Petite", "Small"), value: "small" }, { label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Grande", "Large"), value: "large" }]} value={preferences.markerSize} />
+        <Setting label={t("mapSettingsPanel.fireMarkerSize")}>
+          <Choice onChange={(value) => update("markerSize", value)} options={[{ label: t("mapSettingsPanel.small"), value: "small" }, { label: t("mapSettingsPanel.normal"), value: "normal" }, { label: t("mapSettingsPanel.large"), value: "large" }]} value={preferences.markerSize} />
         </Setting>
-        <Setting label={tr("Intensité des halos", "Halo intensity")}>
-          <Choice onChange={(value) => update("haloIntensity", value)} options={[{ label: tr("Faible", "Low"), value: "low" }, { label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Forte", "High"), value: "high" }]} value={preferences.haloIntensity} />
+        <Setting label={t("mapSettingsPanel.haloIntensity")}>
+          <Choice onChange={(value) => update("haloIntensity", value)} options={[{ label: t("mapSettingsPanel.low"), value: "low" }, { label: t("mapSettingsPanel.normal"), value: "normal" }, { label: t("mapSettingsPanel.high"), value: "high" }]} value={preferences.haloIntensity} />
         </Setting>
-        <Toggle checked={preferences.showTooltips} label={tr("Infobulles au survol", "Hover tooltips")} onChange={(value) => update("showTooltips", value)} />
+        <Toggle checked={preferences.showTooltips} label={t("mapSettingsPanel.hoverTooltips")} onChange={(value) => update("showTooltips", value)} />
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Temps", "Time")}</strong>
-        <Setting label={tr("Fuseau horaire", "Time zone")}>
-          <Choice onChange={(value) => update("timeZone", value)} options={[{ label: tr("Local", "Local"), value: "local" }, { label: "UTC", value: "utc" }]} value={preferences.timeZone} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{t("mapSettingsPanel.time")}</strong>
+        <Setting label={t("mapSettingsPanel.timeZone")}>
+          <Choice onChange={(value) => update("timeZone", value)} options={[{ label: t("mapSettingsPanel.local"), value: "local" }, { label: "UTC", value: "utc" }]} value={preferences.timeZone} />
         </Setting>
-        <Setting label={tr("Format de l’heure", "Time format")}>
-          <Choice onChange={(value) => update("hourFormat", value)} options={[{ label: tr("24 heures", "24 hours"), value: "24" }, { label: tr("12 heures", "12 hours"), value: "12" }]} value={preferences.hourFormat} />
+        <Setting label={t("mapSettingsPanel.timeFormat")}>
+          <Choice onChange={(value) => update("hourFormat", value)} options={[{ label: t("mapSettingsPanel.24Hours"), value: "24" }, { label: t("mapSettingsPanel.12Hours"), value: "12" }]} value={preferences.hourFormat} />
         </Setting>
-        <Setting label={tr("Période de la chronologie", "Timeline range")}>
+        <Setting label={t("mapSettingsPanel.timelineRange")}>
           <Choice
             onChange={(value) => update("timelineRangeDays", value)}
             options={[
-              { label: tr("Aujourd’hui", "Today"), value: 1 },
-              { label: tr("3 jours", "3 days"), value: 3 },
-              { label: tr("7 jours", "7 days"), value: 7 },
+              { label: t("mapSettingsPanel.today"), value: 1 },
+              { label: t("mapSettingsPanel.3Days"), value: 3 },
+              { label: t("mapSettingsPanel.7Days"), value: 7 },
             ]}
             value={preferences.timelineRangeDays}
           />
-          <small className="leading-normal text-muted">{tr("Permet de revenir aux jours précédents directement depuis la barre sur la carte.", "Lets you browse previous days directly from the map timeline.")}</small>
+          <small className="leading-normal text-muted">{t("mapSettingsPanel.letsYouBrowsePreviousDaysDirectlyFromThe")}</small>
         </Setting>
-        <Setting label={tr("Vitesse du mode lecture", "Playback speed")}>
-          <Choice onChange={(value) => update("playbackSpeed", value)} options={[{ label: tr("Lente", "Slow"), value: "slow" }, { label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Rapide", "Fast"), value: "fast" }]} value={preferences.playbackSpeed} />
-          <small className="leading-normal text-muted">{tr("Règle le défilement automatique après avoir appuyé sur Lecture. Le glissement manuel ne change pas.", "Controls automatic playback after pressing Play. Manual dragging is unchanged.")}</small>
+        <Setting label={t("mapSettingsPanel.playbackSpeed")}>
+          <Choice onChange={(value) => update("playbackSpeed", value)} options={[{ label: t("mapSettingsPanel.slow"), value: "slow" }, { label: t("mapSettingsPanel.normal"), value: "normal" }, { label: t("mapSettingsPanel.fast"), value: "fast" }]} value={preferences.playbackSpeed} />
+          <small className="leading-normal text-muted">{t("mapSettingsPanel.controlsAutomaticPlaybackAfterPressingPlayManualDragging")}</small>
         </Setting>
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Unités", "Units")}</strong>
-        <Setting label={tr("Vent", "Wind")}>
-          <Choice onChange={(value) => update("windUnit", value)} options={[{ label: "km/h", value: "kmh" }, { label: "m/s", value: "ms" }, { label: tr("nœuds", "knots"), value: "knots" }]} value={preferences.windUnit} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{t("mapSettingsPanel.units")}</strong>
+        <Setting label={t("mapSettingsPanel.wind")}>
+          <Choice onChange={(value) => update("windUnit", value)} options={[{ label: "km/h", value: "kmh" }, { label: "m/s", value: "ms" }, { label: t("mapSettingsPanel.knots"), value: "knots" }]} value={preferences.windUnit} />
         </Setting>
-        <Setting label={tr("Distance", "Distance")}>
+        <Setting label={t("mapSettingsPanel.distance")}>
           <Choice onChange={(value) => update("distanceUnit", value)} options={[{ label: "km", value: "km" }, { label: "miles", value: "miles" }]} value={preferences.distanceUnit} />
         </Setting>
-        <Setting label={tr("Surfaces mesurées et brûlées", "Measured and burned areas")}>
-          <Choice onChange={(value) => update("areaUnit", value)} options={[{ label: tr("hectares", "hectares"), value: "ha" }, { label: "km²", value: "km2" }]} value={preferences.areaUnit} />
+        <Setting label={t("mapSettingsPanel.measuredAndBurnedAreas")}>
+          <Choice onChange={(value) => update("areaUnit", value)} options={[{ label: t("mapSettingsPanel.hectares"), value: "ha" }, { label: "km²", value: "km2" }]} value={preferences.areaUnit} />
         </Setting>
-        <Setting label={tr("Coordonnées", "Coordinates")}>
-          <Choice onChange={(value) => update("coordinateFormat", value)} options={[{ label: "DMS", value: "dms" }, { label: tr("Décimales", "Decimal"), value: "decimal" }]} value={preferences.coordinateFormat} />
+        <Setting label={t("mapSettingsPanel.coordinates")}>
+          <Choice onChange={(value) => update("coordinateFormat", value)} options={[{ label: "DMS", value: "dms" }, { label: t("mapSettingsPanel.decimal"), value: "decimal" }]} value={preferences.coordinateFormat} />
         </Setting>
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Accessibilité", "Accessibility")}</strong>
-        <Setting label={tr("Taille du texte", "Text size")}>
-          <Choice onChange={(value) => update("textSize", value)} options={[{ label: tr("Normale", "Normal"), value: "normal" }, { label: tr("Grande", "Large"), value: "large" }]} value={preferences.textSize} />
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{t("mapSettingsPanel.accessibility")}</strong>
+        <Setting label={t("mapSettingsPanel.textSize")}>
+          <Choice onChange={(value) => update("textSize", value)} options={[{ label: t("mapSettingsPanel.normal"), value: "normal" }, { label: t("mapSettingsPanel.large"), value: "large" }]} value={preferences.textSize} />
         </Setting>
-        <Toggle checked={preferences.highContrast} label={tr("Contraste renforcé", "High contrast")} onChange={(value) => update("highContrast", value)} />
-        <Toggle checked={preferences.reduceMotion} label={tr("Réduire les animations", "Reduce motion")} onChange={(value) => update("reduceMotion", value)} />
+        <Toggle checked={preferences.highContrast} label={t("mapSettingsPanel.highContrast")} onChange={(value) => update("highContrast", value)} />
+        <Toggle checked={preferences.reduceMotion} label={t("mapSettingsPanel.reduceMotion")} onChange={(value) => update("reduceMotion", value)} />
       </section>
 
       <section className={section}>
-        <strong className="text-[.7rem] tracking-[.1em] uppercase">{tr("Alertes", "Alerts")}</strong>
-        <Setting label={tr("Rayon par défaut", "Default radius")}>
+        <strong className="text-[.7rem] tracking-[.1em] uppercase">{t("mapSettingsPanel.alerts")}</strong>
+        <Setting label={t("mapSettingsPanel.defaultRadius")}>
           <Choice onChange={(value) => update("alertRadiusKm", value)} options={[5, 10, 25, 50].map((value) => ({ label: `${value} km`, value: value as 5 | 10 | 25 | 50 }))} value={preferences.alertRadiusKm} />
         </Setting>
-        <small className="leading-normal text-muted">{tr("Ce rayon sera proposé pour les prochains lieux surveillés.", "This radius will be suggested for newly watched places.")}</small>
+        <small className="leading-normal text-muted">{t("mapSettingsPanel.thisRadiusWillBeSuggestedForNewlyWatched")}</small>
       </section>
     </aside>
   );

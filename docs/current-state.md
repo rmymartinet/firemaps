@@ -32,6 +32,13 @@ Lot 1 implémenté et première intégration réelle NASA FIRMS codée. Le dép�
 - La liste de suggestions se ferme après sélection, avec Échap ou lors d’un clic extérieur, sans relancer la recherche choisie.
 - Navigation principale simplifiée à Carte/Informations/Urgence ; l’ancienne page adresse reste non liée en attente du flux de surveillance.
 - Écran urgence avec appels 112/18 et géolocalisation à la demande.
+- Le panneau `Signaux` donne accès, sans ajouter de commande permanente sur la
+  carte, à une fiche d’urgence liée au pays sous le point sélectionné ou au
+  centre de la carte. La première version couvre les 27 pays de l’Union
+  européenne avec le 112 et les États-Unis avec le 911, détecte le pays
+  localement, permet une correction
+  manuelle, copie les coordonnées et exige une confirmation avant d’ouvrir
+  l’appel.
 - Formulaire communautaire mobile-first : catégorie, date, localisation actuelle, adresse IGN ou point transmis depuis la carte, description, photo/vidéo capturée ou lien vidéo public.
 - Un clic libre sur la carte ouvre automatiquement la popup du point choisi avec « Signaler ici » et « Annuler ». Le signalement s’ouvre dans une feuille modale au-dessus de la carte, sans navigation, puis actualise immédiatement les marqueurs locaux.
 - La feuille modale est optimisée pour un signalement en quelques secondes : catégorie, média facultatif, publication ; heure, point, statut et expiration sont automatiques. Les champs secondaires sont repliés.
@@ -415,8 +422,13 @@ une livraison garantie nécessite toujours :
   section des réglages de la carte.
 - Le choix est conservé localement, met à jour la langue du document et adapte
   également les dates, heures et âges des observations.
-- Les principaux parcours sont traduits : carte et chronologie, recherche,
-  compte, informations de sécurité et création d’un signalement.
+- Les textes français et anglais sont centralisés dans
+  `src/i18n/messages/fr.json` et `src/i18n/messages/en.json`. Les composants
+  utilisent désormais des clés avec `t("namespace.message")`, y compris pour
+  les messages dynamiques à variables.
+- Un test vérifie que les deux catalogues possèdent les mêmes clés et les mêmes
+  variables. Cette structure permet d’ajouter une langue sans modifier chaque
+  composant.
 
 ## Couverture mondiale des détections
 

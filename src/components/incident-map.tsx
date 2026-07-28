@@ -24,11 +24,25 @@ import { useLanguage } from "@/i18n/language-context";
 
 const confidenceLabels = { confirmed: "confirmée", probable: "élevée", unverified: "non vérifiée" };
 const freshnessLabels = { fresh: "récente", aging: "à surveiller", stale: "ancienne" };
+const freshnessLabelsEnglish = { fresh: "recent", aging: "aging", stale: "old" };
+const freshnessLabelsSpanish = { fresh: "reciente", aging: "vigilar", stale: "antigua" };
 const activityTrendLabels = {
   rising: "en hausse",
   stable: "stable",
   falling: "en baisse",
   insufficient: "données insuffisantes",
+};
+const activityTrendLabelsEnglish = {
+  rising: "rising",
+  stable: "stable",
+  falling: "falling",
+  insufficient: "insufficient data",
+};
+const activityTrendLabelsSpanish = {
+  rising: "en aumento",
+  stable: "estable",
+  falling: "en descenso",
+  insufficient: "datos insuficientes",
 };
 const compassLabels = ["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"] as const;
 const compassLabelsEnglish = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"] as const;
@@ -128,9 +142,17 @@ function formatAreaFromHectares(areaHectares: number, unit: "ha" | "km2", maximu
   return `${areaHectares.toLocaleString("fr-FR", { maximumFractionDigits })} ha`;
 }
 
-function compassDirection(bearing: number, language: "en" | "fr" = "fr"): string {
+function compassDirection(bearing: number, language: "en" | "fr" | "es" | "it" | "de" | "pt" | "nl" | "pl" | "ar" = "fr"): string {
   const index = Math.round(((bearing % 360) + 360) % 360 / 45) % compassLabels.length;
-  return language === "fr" ? compassLabels[index] : compassLabelsEnglish[index];
+  if (language === "fr") return compassLabels[index];
+  if (language === "es") return compassLabelsEnglish[index];
+  if (language === "it") return compassLabelsEnglish[index];
+  if (language === "de") return compassLabelsEnglish[index];
+  if (language === "pt") return compassLabelsEnglish[index];
+  if (language === "nl") return compassLabelsEnglish[index];
+  if (language === "pl") return compassLabelsEnglish[index];
+  if (language === "ar") return compassLabelsEnglish[index];
+  return compassLabelsEnglish[index];
 }
 
 function movementBearing(
@@ -185,7 +207,7 @@ function BurnScarAnalysis({
   longitude: number;
   observedAt: string;
 }) {
-  const { locale, tr } = useLanguage();
+  const { language, locale, t } = useLanguage();
   const [state, setState] = useState<
     | { status: "idle" }
     | { status: "loading" }
@@ -201,23 +223,23 @@ function BurnScarAnalysis({
       const parameters = new URLSearchParams({ lat: String(latitude), lon: String(longitude) });
       const response = await fetch(`/api/satellite/sentinel-2/scenes?${parameters}`);
       const payload = await response.json() as { message?: string; scenes?: SentinelScene[] };
-      if (!response.ok) throw new Error(payload.message || tr("Le catalogue Sentinel-2 ne répond pas.", "The Sentinel-2 catalog is not responding."));
+      if (!response.ok) throw new Error(payload.message || t("incidentMap.theSentinel2CatalogIsNotResponding"));
       setState({ status: "ready", comparison: selectBurnComparison(payload.scenes ?? [], observedAt) });
     } catch (error) {
-      setState({ status: "error", message: error instanceof Error ? error.message : tr("Analyse indisponible.", "Analysis unavailable.") });
+      setState({ status: "error", message: error instanceof Error ? error.message : t("incidentMap.analysisUnavailable") });
     }
   };
 
   if (state.status === "idle") {
-    return <button className="burn-analysis-button" onClick={() => void load()}>{tr("Comparer les images avant / après", "Compare before / after images")}</button>;
+    return <button className="burn-analysis-button" onClick={() => void load()}>{t("incidentMap.compareBeforeAfterImages")}</button>;
   }
-  if (state.status === "loading") return <p className="burn-analysis-status">{tr("Recherche d’images Sentinel-2 claires…", "Searching for clear Sentinel-2 images…")}</p>;
+  if (state.status === "loading") return <p className="burn-analysis-status">{t("incidentMap.searchingForClearSentinel2Images")}</p>;
   if (state.status === "error") return <p className="burn-analysis-error">{state.message}</p>;
   if (state.comparison.status === "missing-before") {
-    return <p className="burn-analysis-status">{tr("Aucune image « avant » suffisamment claire n’est disponible sur les 60 derniers jours.", "No sufficiently clear “before” image is available from the past 60 days.")}</p>;
+    return <p className="burn-analysis-status">{t("incidentMap.noSufficientlyClearBeforeImageIsAvailableFrom")}</p>;
   }
   if (state.comparison.status === "waiting-after") {
-    return <p className="burn-analysis-status">{tr("Image « avant » trouvée. Il faut encore attendre une image claire acquise après l’événement.", "A “before” image was found. A clear image acquired after the event is still needed.")}</p>;
+    return <p className="burn-analysis-status">{t("incidentMap.aBeforeImageWasFoundAClearImage")}</p>;
   }
   const { before, after } = state.comparison;
   if (!before || !after) return null;
@@ -230,21 +252,21 @@ function BurnScarAnalysis({
   });
   return (
     <div className="burn-analysis-result">
-      <strong>{tr("Évolution optique Sentinel-2", "Sentinel-2 optical change")}</strong>
+      <strong>{t("incidentMap.sentinel2OpticalChange")}</strong>
       <small>
-        {tr("Avant", "Before")}: {new Date(before.observedAt).toLocaleDateString(locale)} · {tr("après", "after")}: {new Date(after.observedAt).toLocaleDateString(locale)}
+        {t("incidentMap.before")}: {new Date(before.observedAt).toLocaleDateString(locale)} · {t("incidentMap.after")}: {new Date(after.observedAt).toLocaleDateString(locale)}
       </small>
       {imageError
-        ? <p className="burn-analysis-error">{tr("Le rendu avant/après est indisponible ou le serveur Copernicus n’est pas configuré.", "The before/after rendering is unavailable or the Copernicus server is not configured.")}</p>
+        ? <p className="burn-analysis-error">{t("incidentMap.theBeforeAfterRenderingIsUnavailableOrThe")}</p>
         : <Image
-            alt={tr("Différence spectrale Sentinel-2 avant et après l’événement", "Sentinel-2 spectral difference before and after the event")}
+            alt={t("incidentMap.sentinel2SpectralDifferenceBeforeAndAfterThe")}
             height={512}
             onError={() => setImageError(true)}
             src={`/api/satellite/sentinel-2/image?${imageParameters}`}
             unoptimized
             width={512}
           />}
-      <small>{tr("Les pixels colorés signalent une variation compatible avec une cicatrice brûlée ; ils ne constituent pas un périmètre officiel.", "Colored pixels indicate a change compatible with a burn scar; they do not form an official perimeter.")}</small>
+      <small>{t("incidentMap.coloredPixelsIndicateAChangeCompatibleWithA")}</small>
     </div>
   );
 }
@@ -268,7 +290,8 @@ function DetectionLayers({
   showEffis: boolean;
   windObservations: WindObservation[];
 }) {
-  const { language, tr } = useLanguage();
+  const { language, t } = useLanguage();
+  const ageLanguage: "en" | "fr" = language === "fr" ? "fr" : "en";
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
   const initialBounds = map.getBounds().pad(0.25);
@@ -328,16 +351,16 @@ function DetectionLayers({
             positions={positions}
           >
             <Tooltip sticky>
-              {tr("Zone brûlée estimée EFFIS", "EFFIS estimated burned area")} · {formatAreaFromHectares(perimeter.areaHectares, areaUnit)}
+              {t("incidentMap.effisEstimatedBurnedArea")} · {formatAreaFromHectares(perimeter.areaHectares, areaUnit)}
             </Tooltip>
             <Popup>
-              <small className="map-data-kind map-data-kind-official">{tr("Périmètre officiel estimé", "Estimated official perimeter")}</small>
-              <div className="popup-title">{tr("Zone brûlée estimée EFFIS", "EFFIS estimated burned area")}</div>
-              <p><strong>{tr("Environ", "Approximately")} {formatAreaFromHectares(perimeter.areaHectares, areaUnit)}.</strong></p>
+              <small className="map-data-kind map-data-kind-official">{t("incidentMap.estimatedOfficialPerimeter")}</small>
+              <div className="popup-title">{t("incidentMap.effisEstimatedBurnedArea")}</div>
+              <p><strong>{t("incidentMap.approximately")} {formatAreaFromHectares(perimeter.areaHectares, areaUnit)}.</strong></p>
               {perimeter.province && <p>{perimeter.province}{perimeter.country ? ` · ${perimeter.country}` : ""}</p>}
-              {perimeter.lastUpdatedAt && <p>{tr("Mise à jour", "Updated")}: {formatAge(perimeter.lastUpdatedAt, new Date(), language)}.</p>}
-              <p>{tr("Ce périmètre satellite reste une estimation et peut différer d’un relevé opérationnel.", "This satellite perimeter remains an estimate and may differ from operational surveying.")}</p>
-              <small>{tr("Source", "Source")}: <a href={perimeter.sourceUrl} rel="noreferrer" target="_blank">{perimeter.sourceName}</a></small>
+              {perimeter.lastUpdatedAt && <p>{t("incidentMap.updated")}: {formatAge(perimeter.lastUpdatedAt, new Date(), ageLanguage)}.</p>}
+              <p>{t("incidentMap.thisSatellitePerimeterRemainsAnEstimateAndMay")}</p>
+              <small>{t("incidentMap.source")}: <a href={perimeter.sourceUrl} rel="noreferrer" target="_blank">{perimeter.sourceName}</a></small>
             </Popup>
           </Polygon>
         );
@@ -417,32 +440,32 @@ function DetectionLayers({
             <Tooltip className="zone-hover-card" sticky>
               <strong>🔥 {zone.incidents.length} signaux thermiques</strong>
               <span>Dernier : {formatAge(summary.latestObservedAt)}</span>
-              {summary.radiativePowerMw !== null && <span>{tr("Intensité observée", "Observed intensity")}: {Math.round(summary.radiativePowerMw)} MW</span>}
+              {summary.radiativePowerMw !== null && <span>{t("incidentMap.observedIntensity")}: {Math.round(summary.radiativePowerMw)} MW</span>}
               {movement && movement.distanceKm >= 0.3 && (
-                <span>↗ {tr("Déplacement apparent", "Apparent movement")}: {compassDirection(directionBearing, language)}</span>
+                <span>↗ {t("incidentMap.apparentMovement")}: {compassDirection(directionBearing, language)}</span>
               )}
               {nearestWind && windTowards !== null && (
                 <span>≋ Vent : {Math.round(nearestWind.speedKmh)} km/h vers {compassDirection(windTowards, language)}</span>
               )}
-              <small>{tr("Confiance fusionnée", "Combined confidence")}: {eventConfidence.score}/100 · {tr("estimation satellite", "satellite estimate")}</small>
+              <small>{t("incidentMap.combinedConfidence")}: {eventConfidence.score}/100 · {t("incidentMap.satelliteEstimate")}</small>
             </Tooltip>
             <Popup>
-              <div className="popup-title">🔥 {tr("Activité thermique observée", "Observed thermal activity")}</div>
-              <p><strong>{zone.incidents.length} {tr("signaux", "signals")} · {tr("dernière détection", "latest detection")} {formatAge(summary.latestObservedAt, new Date(), language)}</strong></p>
-              <p>{tr("Tendance satellite", "Satellite trend")}: {language === "fr" ? activityTrendLabels[summary.trend] : summary.trend === "rising" ? "rising" : summary.trend === "falling" ? "falling" : summary.trend === "stable" ? "stable" : "insufficient data"} · {tr("confiance fusionnée", "combined confidence")} {eventConfidence.score}/100.</p>
-              {summary.radiativePowerMw !== null && <p>{tr("Intensité thermique observée", "Observed thermal intensity")}: {Math.round(summary.radiativePowerMw)} MW.</p>}
+              <div className="popup-title">🔥 {t("incidentMap.observedThermalActivity")}</div>
+              <p><strong>{zone.incidents.length} {t("incidentMap.signals")} · {t("incidentMap.latestDetection")} {formatAge(summary.latestObservedAt, new Date(), ageLanguage)}</strong></p>
+              <p>{t("incidentMap.satelliteTrend")}: {language === "fr" ? activityTrendLabels[summary.trend] : language === "es" ? activityTrendLabelsSpanish[summary.trend] : language === "it" ? activityTrendLabelsEnglish[summary.trend] : language === "de" ? activityTrendLabelsEnglish[summary.trend] : language === "pt" ? activityTrendLabelsEnglish[summary.trend] : language === "nl" ? activityTrendLabelsEnglish[summary.trend] : activityTrendLabelsEnglish[summary.trend]} · {t("incidentMap.combinedConfidence2")} {eventConfidence.score}/100.</p>
+              {summary.radiativePowerMw !== null && <p>{t("incidentMap.observedThermalIntensity")}: {Math.round(summary.radiativePowerMw)} MW.</p>}
               {movement && movement.distanceKm >= 0.3 ? (
                 <p>
-                  ↗ {tr("Déplacement apparent", "Apparent movement")}: {compassDirection(directionBearing, language)} · {tr("environ", "approximately")}{" "}
-                  {(movement.distanceKm / 3).toFixed(1)} km/h {tr("entre deux groupes de détections.", "between two groups of detections.")}
+                  ↗ {t("incidentMap.apparentMovement")}: {compassDirection(directionBearing, language)} · {t("incidentMap.approximately2")}{" "}
+                  {(movement.distanceKm / 3).toFixed(1)} km/h {t("incidentMap.betweenTwoGroupsOfDetections")}
                 </p>
-              ) : <p>{tr("Déplacement apparent : données insuffisantes.", "Apparent movement: insufficient data.")}</p>}
+              ) : <p>{t("incidentMap.apparentMovementInsufficientData")}</p>}
               {nearestWind && windTowards !== null ? (
-                <p>≋ {tr("Vent estimé", "Estimated wind")}: {Math.round(nearestWind.speedKmh)} km/h {tr("vers", "toward")} {compassDirection(windTowards, language)} · {tr("rafales", "gusts")} {Math.round(nearestWind.gustKmh)} km/h.</p>
-              ) : <p>{tr("Vent : donnée indisponible.", "Wind: data unavailable.")}</p>}
+                <p>≋ {t("incidentMap.estimatedWind")}: {Math.round(nearestWind.speedKmh)} km/h {t("incidentMap.toward")} {compassDirection(windTowards, language)} · {t("incidentMap.gusts")} {Math.round(nearestWind.gustKmh)} km/h.</p>
+              ) : <p>{t("incidentMap.windDataUnavailable")}</p>}
               {mappedPerimeter
-                ? <p>{tr("Surface EFFIS associée", "Associated EFFIS area")}: {tr("environ", "approximately")} {Math.round(mappedPerimeter.areaHectares).toLocaleString(language === "fr" ? "fr-FR" : "en-GB")} ha.</p>
-                : <p>{tr("Surface brûlée : non calculable à partir de ces seuls signaux.", "Burned area: cannot be calculated from these signals alone.")}</p>}
+                ? <p>{t("incidentMap.associatedEffisArea")}: {t("incidentMap.approximately2")} {Math.round(mappedPerimeter.areaHectares).toLocaleString(language === "fr" ? "fr-FR" : language === "es" ? "es-ES" : language === "it" ? "it-IT" : language === "de" ? "de-DE" : language === "pt" ? "pt-PT" : language === "nl" ? "nl-NL" : "en-GB")} ha.</p>
+                : <p>{t("incidentMap.burnedAreaCannotBeCalculatedFromTheseSignals")}</p>}
               <BurnScarAnalysis
                 latitude={zoneCenter.latitude}
                 longitude={zoneCenter.longitude}
@@ -455,13 +478,13 @@ function DetectionLayers({
                 </p>
               )}
               <details className="popup-details">
-                <summary>{tr("Comprendre cette estimation", "Understand this estimate")}</summary>
-                <p>{tr(`${summary.recentDetections} signaux sur 3 h, contre ${summary.previousDetections} durant les 3 h précédentes.`, `${summary.recentDetections} signals over 3 hours, versus ${summary.previousDetections} during the previous 3 hours.`)}</p>
+                <summary>{t("incidentMap.understandThisEstimate")}</summary>
+                <p>{t("incidentMap.signalsComparison", { recent: summary.recentDetections, previous: summary.previousDetections })}</p>
                 <p>Score : {eventConfidence.reasons.join(" ")}</p>
-                <p>{showEffis ? tr("Les zones rouges EFFIS sont affichées lorsqu’elles existent.", "Red EFFIS areas are displayed when available.") : tr("Les zones estimées EFFIS sont masquées.", "Estimated EFFIS areas are hidden.")}</p>
-                <p>{tr("Le déplacement compare deux centroïdes de signaux espacés de 3 h. Ce n’est ni la vitesse du front ni une prévision.", "Movement compares two signal centroids three hours apart. It is neither fire-front speed nor a forecast.")}</p>
-                <p>{tr("Le vent est une estimation météo à 10 m et ne suffit pas à prévoir la propagation.", "Wind is a weather estimate at 10 m and is not enough to forecast fire spread.")}</p>
-                <p>{tr("Les hachures ne représentent pas une surface brûlée confirmée ni un périmètre opérationnel.", "Hatching does not represent a confirmed burned area or an operational perimeter.")}</p>
+                <p>{showEffis ? t("incidentMap.redEffisAreasAreDisplayedWhenAvailable") : t("incidentMap.estimatedEffisAreasAreHidden")}</p>
+                <p>{t("incidentMap.movementComparesTwoSignalCentroidsThreeHoursApart")}</p>
+                <p>{t("incidentMap.windIsAWeatherEstimateAt10M")}</p>
+                <p>{t("incidentMap.hatchingDoesNotRepresentAConfirmedBurnedArea")}</p>
               </details>
             </Popup>
           </Polygon>
@@ -510,12 +533,12 @@ function DetectionLayers({
               opacity={dimIncidents ? 0.34 : pointOpacity(newest.observedAt, referenceTime)}
               position={[cluster.latitude, cluster.longitude]}
             >
-              <Tooltip>{tr("Regroupement de", "Cluster of")} {cluster.incidents.length} {tr("détections thermiques", "thermal detections")}</Tooltip>
+              <Tooltip>{t("incidentMap.clusterOf")} {cluster.incidents.length} {t("incidentMap.thermalDetections")}</Tooltip>
               <Popup>
-                <div className="popup-title">{cluster.incidents.length} {tr("détections satellite regroupées", "clustered satellite detections")}</div>
-                <p>{tr("Regroupement visuel calculé à ce niveau de zoom, pas périmètre d’incendie.", "Visual grouping calculated at this zoom level, not a fire perimeter.")}</p>
-                <p>{tr("Détection la plus récente", "Most recent detection")}: {formatAge(newest.observedAt, new Date(), language)}</p>
-                <button className="secondary" onClick={() => map.flyTo([cluster.latitude, cluster.longitude], Math.min(11, zoom + 2))}>{tr("Voir les détections", "View detections")}</button>
+                <div className="popup-title">{cluster.incidents.length} {t("incidentMap.clusteredSatelliteDetections")}</div>
+                <p>{t("incidentMap.visualGroupingCalculatedAtThisZoomLevelNot")}</p>
+                <p>{t("incidentMap.mostRecentDetection")}: {formatAge(newest.observedAt, new Date(), ageLanguage)}</p>
+                <button className="secondary" onClick={() => map.flyTo([cluster.latitude, cluster.longitude], Math.min(11, zoom + 2))}>{t("incidentMap.viewDetections")}</button>
               </Popup>
             </Marker>
           );
@@ -537,23 +560,23 @@ function DetectionLayers({
               opacity={opacity}
               position={[incident.latitude, incident.longitude]}
             >
-              <Tooltip>{incident.title} · {formatAge(incident.observedAt, new Date(), language)}</Tooltip>
+              <Tooltip>{incident.title} · {formatAge(incident.observedAt, new Date(), ageLanguage)}</Tooltip>
               <Popup>
-                <small className="map-data-kind map-data-kind-satellite">{tr("Détection satellite", "Satellite detection")}</small>
-                <div className="popup-title">{tr("Chaleur détectée ici", "Heat detected here")}</div>
-                <p>{tr("Vue par satellite", "Observed by satellite")} {formatAge(incident.observedAt, new Date(), language)}.</p>
-                <p><strong>{tr("Ce signal ne confirme pas à lui seul un incendie.", "This signal alone does not confirm a wildfire.")}</strong></p>
+                <small className="map-data-kind map-data-kind-satellite">{t("incidentMap.satelliteDetection")}</small>
+                <div className="popup-title">{t("incidentMap.heatDetectedHere")}</div>
+                <p>{t("incidentMap.observedBySatellite")} {formatAge(incident.observedAt, new Date(), ageLanguage)}.</p>
+                <p><strong>{t("incidentMap.thisSignalAloneDoesNotConfirmAWildfire")}</strong></p>
                 <details className="popup-details">
-                  <summary>{tr("Voir les détails", "View details")}</summary>
+                  <summary>{t("incidentMap.viewDetails")}</summary>
                   <p>{incident.description}</p>
                   <p>Confiance du signal : {confidenceLabels[incident.confidence]}</p>
-                  <p>{tr("Fraîcheur", "Recency")}: {language === "fr" ? freshnessLabels[freshness] : freshness === "fresh" ? "recent" : freshness === "aging" ? "aging" : "old"}</p>
-                  <p>{tr("Surface brûlée : inconnue.", "Burned area: unknown.")}</p>
-                  {(incident.mergedDetectionCount ?? 1) > 1 && <p>{tr(`${incident.mergedDetectionCount} observations proches ont été fusionnées.`, `${incident.mergedDetectionCount} nearby observations were merged.`)}</p>}
+                  <p>{t("incidentMap.recency")}: {language === "fr" ? freshnessLabels[freshness] : language === "es" ? freshnessLabelsSpanish[freshness] : language === "it" ? freshnessLabelsEnglish[freshness] : language === "de" ? freshnessLabelsEnglish[freshness] : language === "pt" ? freshnessLabelsEnglish[freshness] : language === "nl" ? freshnessLabelsEnglish[freshness] : freshnessLabelsEnglish[freshness]}</p>
+                  <p>{t("incidentMap.burnedAreaUnknown")}</p>
+                  {(incident.mergedDetectionCount ?? 1) > 1 && <p>{t("incidentMap.nearbyObservationsMerged", { count: incident.mergedDetectionCount ?? 1 })}</p>}
                   {incident.radiativePowerMw !== undefined && <p>Puissance radiative : {incident.radiativePowerMw} MW</p>}
                   <small>
                     Source : <a href={incident.sourceUrl} rel="noreferrer" target="_blank">{incident.sourceName}</a><br />
-                    {tr("Observation", "Observation")}: {new Date(incident.observedAt).toLocaleString(language === "fr" ? "fr-FR" : "en-GB", { dateStyle: "short", timeStyle: "short" })}
+                    {t("incidentMap.observation")}: {new Date(incident.observedAt).toLocaleString(language === "fr" ? "fr-FR" : language === "es" ? "es-ES" : language === "it" ? "it-IT" : language === "de" ? "de-DE" : language === "pt" ? "pt-PT" : language === "nl" ? "nl-NL" : "en-GB", { dateStyle: "short", timeStyle: "short" })}
                   </small>
                 </details>
               </Popup>
@@ -582,7 +605,7 @@ function SelectedLocation({
   onReport: (location: GeocodingSuggestion) => void;
   zoom?: number;
 }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   const map = useMap();
   const markerRef = useRef<LeafletMarker | null>(null);
   const popupRef = useRef<LeafletPopup | null>(null);
@@ -635,14 +658,14 @@ function SelectedLocation({
                 <>
                   <span className="max-[520px]:hidden">{location.label}</span>
                   <span className="hidden max-[520px]:inline">
-                    {tr("Point sélectionné", "Selected point")} · {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                    {t("incidentMap.selectedPoint")} · {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                   </span>
                 </>
               ) : location.label}
             </span>
           </div>
           <button
-            aria-label={tr("Fermer", "Close")}
+            aria-label={t("incidentMap.close")}
             className="absolute -top-2 -right-2 flex size-7 rotate-[.7deg] cursor-pointer items-center justify-center rounded-[51%_49%_46%_54%] border-[1.5px] border-[#172322] bg-white font-['Comic_Sans_MS','Bradley_Hand',cursive] text-base leading-none text-[#172322] max-[520px]:-top-1 max-[520px]:-right-1"
             onClick={(event) => {
               event.stopPropagation();
@@ -654,13 +677,13 @@ function SelectedLocation({
           </button>
           <p>
             {kind === "geolocation"
-              ? tr("Position fournie par cet appareil.", "Location provided by this device.")
+              ? t("incidentMap.locationProvidedByThisDevice")
               : kind === "saved"
-                ? tr("Lieu enregistré sur cet appareil.", "Place saved on this device.")
+                ? t("incidentMap.placeSavedOnThisDevice")
                 : kind === "pin"
-                  ? tr("Point choisi manuellement sur la carte.", "Point selected manually on the map.")
-                  : tr("Lieu recherché.", "Searched place.")}
-            {" "}{tr("Sa présence sur la carte ne fournit aucune information de sécurité.", "Its presence on the map does not provide any safety information.")}
+                  ? t("incidentMap.pointSelectedManuallyOnTheMap")
+                  : t("incidentMap.searchedPlace")}
+            {" "}{t("incidentMap.itsPresenceOnTheMapDoesNotProvide")}
           </p>
           <div className="grid grid-cols-3 gap-2" onClick={(event) => event.stopPropagation()} onMouseDown={(event) => event.stopPropagation()}>
             <button className={`${geometryButtonClass} rotate-[-.5deg]`} onClick={(event) => {
@@ -668,7 +691,7 @@ function SelectedLocation({
               onReport(location);
             }} type="button">
               <span aria-hidden className="grid size-7 place-items-center rounded-[48%_52%_45%_55%] border-[1.5px] border-[#172322] text-lg leading-none text-[#d9482f]">＋</span>
-              {tr("Point", "Point")}
+              {t("incidentMap.point")}
             </button>
             <button className={`${geometryButtonClass} rotate-[.4deg] rounded-[8px_12px_7px_11px]`} onClick={(event) => {
               event.stopPropagation();
@@ -678,7 +701,7 @@ function SelectedLocation({
                 <path d="M6 8.5 24.5 5 27 24 9 27Z" fill="#f6f0df" stroke="#172322" strokeLinejoin="round" strokeWidth="1.8" />
                 <path d="m8 12 7-5m-7 10L22 6M8.5 22 26 10M12 26l14-10M18 25l8-6" stroke="#52605d" strokeLinecap="round" strokeWidth="1.2" />
               </svg>
-              {tr("Zone", "Area")}
+              {t("incidentMap.area")}
             </button>
             <button className={`${geometryButtonClass} rotate-[-.35deg]`} onClick={(event) => {
               event.stopPropagation();
@@ -691,16 +714,16 @@ function SelectedLocation({
                 <circle cx="21" cy="14" fill="#fff" r="2.7" stroke="#172322" strokeWidth="1.7" />
                 <circle cx="27" cy="6" fill="#fff" r="2.7" stroke="#172322" strokeWidth="1.7" />
               </svg>
-              {tr("Limite", "Boundary")}
+              {t("incidentMap.boundary")}
             </button>
           </div>
           <div className="mt-2">
             <button className="min-h-10 w-full cursor-pointer rotate-[.2deg] rounded-[9px_6px_11px_7px] border-[1.5px] border-[#172322] bg-transparent px-3 text-xs font-black shadow-[1px_1px_0_rgba(23,35,34,.12)]" onClick={(event) => {
               event.stopPropagation();
               closeSelection();
-            }} type="button">{tr("Annuler", "Cancel")}</button>
+            }} type="button">{t("incidentMap.cancel")}</button>
           </div>
-          {kind === "search" && <small>{tr("Source de l’adresse", "Address source")}: IGN · Géoplateforme</small>}
+          {kind === "search" && <small>{t("incidentMap.addressSource")}: IGN · Géoplateforme</small>}
         </div>
       </Popup>
     </Marker>
@@ -718,14 +741,14 @@ function CommunityReportsLayer({
   onVote: (reportId: string, vote: -1 | 1) => void;
   onDelete: (reportId: string) => void;
 }) {
-  const { language, tr } = useLanguage();
+  const { language, t } = useLanguage();
   return reports
     .filter((report) => communityReportStatus(report) !== "expired")
     .map((report) => {
       const status = communityReportStatus(report);
-      const reporterAlias = (report.reporterAlias || (report.ownedByViewer ? tr("Moi", "Me") : tr("Membre", "Member")))
+      const reporterAlias = (report.reporterAlias || (report.ownedByViewer ? t("incidentMap.me") : t("incidentMap.member")))
         .replace(/[^\p{L}\p{N} _-]/gu, "")
-        .slice(0, 24) || tr("Membre", "Member");
+        .slice(0, 24) || t("incidentMap.member");
       const safePhotoUrl = report.mediaKind === "photo"
         && report.mediaUrl
         && /^https?:\/\//i.test(report.mediaUrl)
@@ -758,7 +781,7 @@ function CommunityReportsLayer({
             positions={report.observedZone.map((point) => [point.latitude, point.longitude])}
           >
             <Tooltip className="zone-hover-card" direction="top">
-              {tr("Zone dessinée par un utilisateur · non vérifiée", "User-drawn area · unverified")}
+              {t("incidentMap.userDrawnAreaUnverified")}
             </Tooltip>
           </Polygon>
         )}
@@ -769,7 +792,7 @@ function CommunityReportsLayer({
             positions={report.observedZone.map((point) => [point.latitude, point.longitude])}
           >
             <Tooltip className="zone-hover-card" direction="top">
-              {tr("Limite tracée par un utilisateur · non vérifiée", "User-drawn boundary · unverified")}
+              {t("incidentMap.userDrawnBoundaryUnverified")}
             </Tooltip>
           </Polyline>
         )}
@@ -780,34 +803,34 @@ function CommunityReportsLayer({
             positions={[[report.latitude, report.longitude], [directionEnd.latitude, directionEnd.longitude]]}
           >
             <Tooltip className="zone-hover-card" direction="top">
-              {report.directionType === "smoke" ? tr("Direction de fumée indiquée", "Reported smoke direction") : tr("Progression observée indiquée", "Reported spread")} · {tr("non vérifiée", "unverified")}
+              {report.directionType === "smoke" ? t("incidentMap.reportedSmokeDirection") : t("incidentMap.reportedSpread")} · {t("incidentMap.unverified")}
             </Tooltip>
           </Polyline>
         )}
         <Marker icon={icon} position={[report.latitude, report.longitude]}>
           <Popup className="community-report-popup">
             <div className="community-popup">
-              <small className="map-data-kind map-data-kind-community">{tr("Signalement citoyen", "Community report")}</small>
-              <span className={`community-status community-status-${status}`}>{language === "fr" ? communityStatusLabels[status] : communityStatusLabelsEnglish[status]}</span>
-              <div className="popup-title">{language === "fr" ? communityCategoryLabels[report.category] : communityCategoryLabelsEnglish[report.category]}</div>
-              <p>{tr("Observation citoyenne du", "Community observation from")} {new Date(report.capturedAt).toLocaleString(language === "fr" ? "fr-FR" : "en-GB", { dateStyle: "short", timeStyle: "short" })}</p>
+              <small className="map-data-kind map-data-kind-community">{t("incidentMap.communityReport")}</small>
+              <span className={`community-status community-status-${status}`}>{language === "fr" ? communityStatusLabels[status] : language === "es" ? communityStatusLabelsEnglish[status] : language === "it" ? communityStatusLabelsEnglish[status] : language === "de" ? communityStatusLabelsEnglish[status] : language === "pt" ? communityStatusLabelsEnglish[status] : language === "nl" ? communityStatusLabelsEnglish[status] : communityStatusLabelsEnglish[status]}</span>
+              <div className="popup-title">{language === "fr" ? communityCategoryLabels[report.category] : language === "es" ? communityCategoryLabelsEnglish[report.category] : language === "it" ? communityCategoryLabelsEnglish[report.category] : language === "de" ? communityCategoryLabelsEnglish[report.category] : language === "pt" ? communityCategoryLabelsEnglish[report.category] : language === "nl" ? communityCategoryLabelsEnglish[report.category] : communityCategoryLabelsEnglish[report.category]}</div>
+              <p>{t("incidentMap.communityObservationFrom")} {new Date(report.capturedAt).toLocaleString(language === "fr" ? "fr-FR" : language === "es" ? "es-ES" : language === "it" ? "it-IT" : language === "de" ? "de-DE" : language === "pt" ? "pt-PT" : language === "nl" ? "nl-NL" : "en-GB", { dateStyle: "short", timeStyle: "short" })}</p>
               {report.reportCount && report.reportCount > 1 && (
-                <p><strong>{tr(`${report.reportCount} témoignages proches regroupés sur ce repère.`, `${report.reportCount} nearby reports grouped on this marker.`)}</strong></p>
+                <p><strong>{t("incidentMap.nearbyReportsGrouped", { count: report.reportCount })}</strong></p>
               )}
               {report.description && <p>{report.description}</p>}
               {direction != null && (
-                <p><strong>{report.directionType === "smoke" ? tr("Direction de fumée", "Smoke direction") : tr("Progression observée", "Observed spread")}:</strong> {tr("environ", "approximately")} {direction}° · {tr("indication communautaire", "community indication")}.</p>
+                <p><strong>{report.directionType === "smoke" ? t("incidentMap.smokeDirection") : t("incidentMap.observedSpread")}:</strong> {t("incidentMap.approximately2")} {direction}° · {t("incidentMap.communityIndication")}.</p>
               )}
               {(report.mediaKind === "photo" || report.mediaKind === "video") && report.mediaUrl && (
                 <CommunityMedia kind={report.mediaKind} reference={report.mediaUrl} />
               )}
               {report.mediaKind !== "none" && report.mediaKind !== "photo" && report.mediaUrl && (
                 <a className="secondary community-media-link" href={report.mediaUrl} rel="noreferrer" target="_blank">
-                  {tr("Voir la vidéo sur", "View video on")} {report.mediaKind === "tiktok" ? "TikTok" : report.mediaKind === "instagram" ? "Instagram" : tr("le site source", "source website")}
+                  {t("incidentMap.viewVideoOn")} {report.mediaKind === "tiktok" ? "TikTok" : report.mediaKind === "instagram" ? "Instagram" : t("incidentMap.sourceWebsite")}
                 </a>
               )}
               <p className="community-vote-summary">
-                {report.confirms} {tr(`confirmation${report.confirms > 1 ? "s" : ""}`, `confirmation${report.confirms > 1 ? "s" : ""}`)} · {report.disputes} {tr(`contestation${report.disputes > 1 ? "s" : ""}`, `dispute${report.disputes > 1 ? "s" : ""}`)}
+                {report.confirms} {t(report.confirms > 1 ? "incidentMap.confirmations" : "incidentMap.confirmation")} · {report.disputes} {t(report.disputes > 1 ? "incidentMap.disputes" : "incidentMap.dispute")}
               </p>
               <div className="m-0 grid grid-cols-2 gap-1.5">
                 <button
@@ -817,7 +840,7 @@ function CommunityReportsLayer({
                   type="button"
                 >
                   <CommunityActionIcon kind="confirm" />
-                  {tr("Je confirme", "I confirm")}
+                  {t("incidentMap.iConfirm")}
                 </button>
                 <button
                   aria-pressed={votes[report.id] === -1}
@@ -826,17 +849,17 @@ function CommunityReportsLayer({
                   type="button"
                 >
                   <CommunityActionIcon kind="dispute" />
-                  {tr("Je conteste", "I dispute")}
+                  {t("incidentMap.iDispute")}
                 </button>
               </div>
               {report.ownedByViewer && (
                 <button className={`${communityActionBase} ${communityDisputeBase} w-full`} onClick={() => onDelete(report.id)} type="button">
                   <CommunityActionIcon kind="delete" />
-                  {tr("Supprimer mon signalement", "Delete my report")}
+                  {t("incidentMap.deleteMyReport")}
                 </button>
               )}
               <small>
-                {tr("Position déclarée", "Reported location")}{report.accuracyMeters ? tr(` · précision annoncée ${report.accuracyMeters} m`, ` · reported accuracy ${report.accuracyMeters} m`) : ""}. {tr("Ce témoignage ne constitue pas une confirmation officielle.", "This report is not an official confirmation.")}
+                {t("incidentMap.reportedLocation")}{report.accuracyMeters ? t("incidentMap.reportedAccuracy", { accuracy: report.accuracyMeters }) : ""}. {t("incidentMap.thisReportIsNotAnOfficialConfirmation")}
               </small>
             </div>
           </Popup>
@@ -847,7 +870,7 @@ function CommunityReportsLayer({
 }
 
 function CommunityMedia({ kind, reference }: { kind: "photo" | "video"; reference: string }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   const [url, setUrl] = useState<string | null>(reference.startsWith("indexeddb:") ? null : reference);
   useEffect(() => {
     if (!reference.startsWith("indexeddb:")) return;
@@ -861,12 +884,12 @@ function CommunityMedia({ kind, reference }: { kind: "photo" | "video"; referenc
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [reference]);
-  if (!url) return <p className="layer-status">{tr("Chargement du média…", "Loading media…")}</p>;
+  if (!url) return <p className="layer-status">{t("incidentMap.loadingMedia")}</p>;
   if (kind === "video") {
     return <video className="community-video" controls playsInline preload="metadata" src={url} />;
   }
   // eslint-disable-next-line @next/next/no-img-element
-  return <img alt={tr("Observation envoyée par un utilisateur", "Observation submitted by a user")} className="community-photo" src={url} />;
+  return <img alt={t("incidentMap.observationSubmittedByAUser")} className="community-photo" src={url} />;
 }
 
 export type MapViewport = {
@@ -908,13 +931,13 @@ function MapClickSelector({
   disabled: boolean;
   onSelect: (location: GeocodingSuggestion) => void;
 }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   useMapEvents({
     click: (event) => {
       if (disabled) return;
       onSelect({
         id: `map-pin-${event.latlng.lat.toFixed(6)}-${event.latlng.lng.toFixed(6)}`,
-        label: `${tr("Point sélectionné", "Selected point")} · ${event.latlng.lat.toFixed(5)}, ${event.latlng.lng.toFixed(5)}`,
+        label: `${t("incidentMap.selectedPoint")} · ${event.latlng.lat.toFixed(5)}, ${event.latlng.lng.toFixed(5)}`,
         latitude: event.latlng.lat,
         longitude: event.latlng.lng,
         kind: "pin",
@@ -981,7 +1004,7 @@ function measurementAction(event: { originalEvent: MouseEvent }): "accept" | "cl
 }
 
 function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onFinish: () => void; unit: "km" | "miles" }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   const map = useMap();
   const [points, setPoints] = useState<LatLng[]>([]);
   const [cursorPoint, setCursorPoint] = useState<LatLng | null>(null);
@@ -1097,7 +1120,7 @@ function DistanceMeasureLayer({ active, onFinish, unit }: { active: boolean; onF
           } }}
           icon={divIcon({
             className: `measurement-label-marker measurement-label-${distanceLabelFacesLeft ? "left" : "right"}`,
-            html: `<span><em>${distanceLabel}</em>${!finished ? `<b class="measurement-confirm measurement-drawing-action" data-measure-action="finish" title="${tr("Terminer la mesure", "Finish measurement")}">✓</b><b class="measurement-drawing-action" data-measure-action="clear" title="${tr("Annuler la mesure", "Cancel measurement")}">×</b>` : !accepted ? `<b class="measurement-confirm measurement-finished-action" data-measure-action="accept" title="${tr("Conserver la mesure", "Keep measurement")}">✓</b><b class="measurement-finished-action" data-measure-action="clear" title="${tr("Supprimer la mesure", "Delete measurement")}">×</b>` : ""}</span>`,
+            html: `<span><em>${distanceLabel}</em>${!finished ? `<b class="measurement-confirm measurement-drawing-action" data-measure-action="finish" title="${t("incidentMap.finishMeasurement")}">✓</b><b class="measurement-drawing-action" data-measure-action="clear" title="${t("incidentMap.cancelMeasurement")}">×</b>` : !accepted ? `<b class="measurement-confirm measurement-finished-action" data-measure-action="accept" title="${t("incidentMap.keepMeasurement")}">✓</b><b class="measurement-finished-action" data-measure-action="clear" title="${t("incidentMap.deleteMeasurement")}">×</b>` : ""}</span>`,
             iconAnchor: [0, 0],
             iconSize: [0, 0],
           })}
@@ -1124,7 +1147,7 @@ function AreaMeasureLayer({
   onFinish: (points: Array<{ latitude: number; longitude: number }>) => void;
   unit: "ha" | "km2";
 }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   const map = useMap();
   const [points, setPoints] = useState<LatLng[]>([]);
   const [cursorPoint, setCursorPoint] = useState<LatLng | null>(null);
@@ -1278,7 +1301,7 @@ function AreaMeasureLayer({
           } }}
           icon={divIcon({
             className: `measurement-label-marker area-measurement-label-marker measurement-label-${areaLabelFacesLeft ? "left" : "right"}`,
-            html: `<span><em>${closeShape ? areaLabel : tr("Limite", "Boundary")}</em>${!finished ? `<b class="measurement-confirm measurement-drawing-action" data-measure-action="finish" title="${tr("Terminer le tracé", "Finish drawing")}">✓</b><b class="measurement-drawing-action" data-measure-action="clear" title="${tr("Annuler le tracé", "Cancel drawing")}">×</b>` : !accepted ? `<b class="measurement-confirm measurement-finished-action" data-measure-action="accept" title="${tr("Conserver le tracé", "Keep drawing")}">✓</b><b class="measurement-finished-action" data-measure-action="clear" title="${tr("Supprimer le tracé", "Delete drawing")}">×</b>` : ""}</span>`,
+            html: `<span><em>${closeShape ? areaLabel : t("incidentMap.boundary")}</em>${!finished ? `<b class="measurement-confirm measurement-drawing-action" data-measure-action="finish" title="${t("incidentMap.finishDrawing")}">✓</b><b class="measurement-drawing-action" data-measure-action="clear" title="${t("incidentMap.cancelDrawing")}">×</b>` : !accepted ? `<b class="measurement-confirm measurement-finished-action" data-measure-action="accept" title="${t("incidentMap.keepDrawing")}">✓</b><b class="measurement-finished-action" data-measure-action="clear" title="${t("incidentMap.deleteDrawing")}">×</b>` : ""}</span>`,
             iconAnchor: [0, 0],
             iconSize: [0, 0],
           })}
@@ -1589,7 +1612,7 @@ export function IncidentMap({
 }
 
 function BdiffHistoryLayer({ areaUnit, places }: { areaUnit: "ha" | "km2"; places: BdiffHistoricalPlace[] }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   return places.map((place) => {
     const radius = Math.min(18, 6 + Math.log2(place.count + 1) * 3);
     return (
@@ -1607,11 +1630,11 @@ function BdiffHistoryLayer({ areaUnit, places }: { areaUnit: "ha" | "km2"; place
         </Tooltip>
         <Popup>
           <article className="history-place-popup">
-            <span>{tr("Historique des feux", "Fire history")} · {place.year}</span>
+            <span>{t("incidentMap.fireHistory")} · {place.year}</span>
             <strong>{place.communeName}</strong>
-            <p>{tr(`${place.count} incendie${place.count > 1 ? "s" : ""} recensé${place.count > 1 ? "s" : ""}`, `${place.count} recorded fire${place.count > 1 ? "s" : ""}`)}</p>
-            <p>{formatAreaFromHectares(place.areaHectares, areaUnit, 2)} {tr("parcourus au total", "affected in total")}</p>
-            <small>{tr("BDIFF et sources officielles · position communale, pas au départ exact du feu.", "BDIFF and official sources · municipality location, not the exact ignition point.")}</small>
+            <p>{t(place.count > 1 ? "incidentMap.recordedFires" : "incidentMap.recordedFire", { count: place.count })}</p>
+            <p>{formatAreaFromHectares(place.areaHectares, areaUnit, 2)} {t("incidentMap.affectedInTotal")}</p>
+            <small>{t("incidentMap.bdiffAndOfficialSourcesMunicipalityLocationNotThe")}</small>
           </article>
         </Popup>
       </CircleMarker>
@@ -1627,7 +1650,7 @@ function nearbyLabel(category: string): string {
 }
 
 function NearbyPlacesLayer({ places }: { places: NearbyPlace[] }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   return places.map((place) => {
     const label = nearbyLabel(place.category);
     const width = Math.max(54, Math.min(100, 24 + label.length * 6.2));
@@ -1644,8 +1667,8 @@ function NearbyPlacesLayer({ places }: { places: NearbyPlace[] }) {
           <article className="nearby-place-popup">
             <span>{place.category}</span>
             <strong>{place.name}</strong>
-            <p>{tr("À", "At")} {formatDistance(place.distanceKm)} {tr("du point de recherche.", "from the searched point.")}</p>
-            <small>{tr("Source contributive OpenStreetMap. Vérifiez localement avant toute décision.", "Community OpenStreetMap source. Verify locally before making any decision.")}</small>
+            <p>{t("incidentMap.at")} {formatDistance(place.distanceKm)} {t("incidentMap.fromTheSearchedPoint")}</p>
+            <small>{t("incidentMap.communityOpenstreetmapSourceVerifyLocallyBeforeMakingAny")}</small>
           </article>
         </Popup>
       </Marker>
@@ -1674,7 +1697,7 @@ function airQualityColor(aqi: number): string {
 }
 
 function AirQualityGridLayer() {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   const map = useMap();
   const [cells, setCells] = useState<AirQualityCell[]>([]);
   const [revision, setRevision] = useState(0);
@@ -1720,17 +1743,17 @@ function AirQualityGridLayer() {
       pathOptions={{ color: airQualityColor(cell.aqi), opacity: 0.08, weight: 1 }}
     >
       <Tooltip className="air-quality-tooltip" sticky>
-        <strong>{tr("Qualité de l’air", "Air quality")}: {Math.round(cell.aqi)}</strong>
-        <span>PM2.5 : {Number.isFinite(cell.pm2_5) ? `${Math.round(cell.pm2_5!)} µg/m³` : tr("indisponible", "unavailable")}</span>
-        <span>PM10 : {Number.isFinite(cell.pm10) ? `${Math.round(cell.pm10!)} µg/m³` : tr("indisponible", "unavailable")}</span>
-        <small>{tr("Estimation CAMS · maille ≈ 11 km", "CAMS estimate · grid ≈ 11 km")}</small>
+        <strong>{t("incidentMap.airQuality")}: {Math.round(cell.aqi)}</strong>
+        <span>PM2.5 : {Number.isFinite(cell.pm2_5) ? `${Math.round(cell.pm2_5!)} µg/m³` : t("incidentMap.unavailable")}</span>
+        <span>PM10 : {Number.isFinite(cell.pm10) ? `${Math.round(cell.pm10!)} µg/m³` : t("incidentMap.unavailable")}</span>
+        <small>{t("incidentMap.camsEstimateGrid11Km")}</small>
       </Tooltip>
     </Rectangle>
   ));
 }
 
 function OfficialNoticesLayer({ notices }: { notices: OfficialNotice[] }) {
-  const { tr } = useLanguage();
+  const { t } = useLanguage();
   return notices.map((notice) => {
     const icon = divIcon({
       className: `official-notice-marker ${notice.severity}`,
@@ -1742,7 +1765,7 @@ function OfficialNoticesLayer({ notices }: { notices: OfficialNotice[] }) {
       <Marker icon={icon} key={notice.id} position={[notice.latitude, notice.longitude]}>
         <Popup>
           <article className={`official-notice popup ${notice.severity}`}>
-            <span>{tr("Information officielle", "Official information")} · {notice.locationLabel}</span>
+            <span>{t("incidentMap.officialInformation")} · {notice.locationLabel}</span>
             <strong>{notice.title}</strong>
             <p>{notice.content}</p>
             {notice.instructions.length > 0 && (

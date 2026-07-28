@@ -56,72 +56,72 @@ function InformationAccordion({
   );
 }
 
-export function InformationContent() {
-  const { tr } = useLanguage();
+export function InformationContent({ onOpenEmergency }: { onOpenEmergency?: () => void } = {}) {
+  const { t } = useLanguage();
   return (
     <div className="mx-auto max-w-[760px] px-4 pt-5 pb-7 text-ink">
       <header className="pr-12">
-        <p className="m-0 text-xs font-black tracking-[.14em] text-fire uppercase">{tr("Comprendre la carte", "Understand the map")}</p>
-        <h1 className="mt-1 mb-1 text-[1.5rem] font-black">{tr("Informations essentielles", "Essential information")}</h1>
-        <p className="mt-0 text-sm leading-normal text-muted">{tr("L’essentiel d’abord. Ouvrez une rubrique seulement si vous en avez besoin.", "Start with the essentials. Open a section only when you need it.")}</p>
+        <p className="m-0 text-xs font-black tracking-[.14em] text-fire uppercase">{t("informationContent.understandTheMap")}</p>
+        <h1 className="mt-1 mb-1 text-[1.5rem] font-black">{t("informationContent.essentialInformation")}</h1>
+        <p className="mt-0 text-sm leading-normal text-muted">{t("informationContent.startWithTheEssentialsOpenASectionOnly")}</p>
       </header>
 
       <section className="mt-4 rotate-[-.15deg] rounded-[17px_14px_19px_15px] border-2 border-dashed border-[#b92f22] bg-[rgba(255,240,233,.72)] p-4 text-[#5f1c15] shadow-[2px_2px_0_rgba(95,28,21,.16)]">
-        <strong className="block text-base">{tr("Danger immédiat ou départ de feu visible ?", "Immediate danger or visible fire?")}</strong>
-        <p className="my-2 text-sm leading-normal">{tr("Éloignez-vous, localisez le feu sans vous exposer et prévenez les secours. N’attendez jamais une mise à jour de la carte.", "Move away, locate the fire without exposing yourself, and call emergency services. Never wait for a map update.")}</p>
-        <div className="flex flex-wrap gap-2">
-          <a className="primary !min-h-11 !bg-[#b92f22] !px-4 !py-2.5" href="tel:112">{tr("Appeler le 112", "Call 112")}</a>
-          <a className="primary !min-h-11 !bg-[#b92f22] !px-4 !py-2.5" href="tel:18">{tr("Appeler le 18", "Call 18")}</a>
-          <a className="secondary !min-h-11 !px-4 !py-2.5" href="https://www.info.urgence114.fr/" rel="noreferrer" target="_blank">{tr("Urgence 114", "Emergency 114")}</a>
-        </div>
+        <strong className="block text-base">{t("informationContent.immediateDangerOrVisibleFire")}</strong>
+        <p className="my-2 text-sm leading-normal">{t("informationContent.moveAwayLocateTheFireWithoutExposingYourself")}</p>
+        {onOpenEmergency && (
+          <button className="primary !min-h-11 !bg-[#b92f22] !px-4 !py-2.5" onClick={onOpenEmergency} type="button">
+            {t("informationContent.viewTheNumberForThisArea")}
+          </button>
+        )}
       </section>
 
       <div className="mt-4 grid gap-2.5">
-        <InformationAccordion defaultOpen icon="thermal" title={tr("Que signifient les points ?", "What do the points mean?")}>
+        <InformationAccordion defaultOpen icon="thermal" title={t("informationContent.whatDoThePointsMean")}>
           <div className="grid gap-3 px-5 text-sm leading-[1.6]">
-            <p className="mt-0">{tr("Un point indique une anomalie de chaleur détectée par satellite. Il ne confirme pas forcément une flamme et ne représente jamais une surface brûlée.", "A point indicates a heat anomaly detected by satellite. It does not necessarily confirm flames and never represents a burned area.")}</p>
+            <p className="mt-0">{t("informationContent.aPointIndicatesAHeatAnomalyDetectedBy")}</p>
             <ul className="my-0 grid gap-2 pl-5">
-              <li>{tr("Rouge : signal observé depuis moins de 3 h.", "Red: signal observed less than 3 hours ago.")}</li>
-              <li>{tr("Orange : observation datant de 3 à 6 h.", "Orange: observation from 3 to 6 hours ago.")}</li>
-              <li>{tr("Plus sombre : observation plus ancienne.", "Darker: older observation.")}</li>
+              <li>{t("informationContent.redSignalObservedLessThan3HoursAgo")}</li>
+              <li>{t("informationContent.orangeObservationFrom3To6HoursAgo")}</li>
+              <li>{t("informationContent.darkerOlderObservation")}</li>
             </ul>
-            <p className="m-0 rounded-[10px_7px_12px_8px] border-2 border-dashed border-[#14717a] bg-[#e7f4f5] p-4 text-[#173f42]">{tr("Signal satellite, incendie confirmé et surface brûlée sont trois informations différentes.", "A satellite signal, a confirmed wildfire and a burned area are three different things.")}</p>
+            <p className="m-0 rounded-[10px_7px_12px_8px] border-2 border-dashed border-[#14717a] bg-[#e7f4f5] p-4 text-[#173f42]">{t("informationContent.aSatelliteSignalAConfirmedWildfireAndA")}</p>
           </div>
         </InformationAccordion>
 
-        <InformationAccordion icon="safety" title={tr("Que faire si un feu est proche ?", "What should I do if a fire is nearby?")}>
+        <InformationAccordion icon="safety" title={t("informationContent.whatShouldIDoIfAFireIs")}>
           <div className="grid gap-3 px-5 text-sm leading-[1.6]">
             <ul className="my-0 grid gap-1.5 pl-5">
-              <li>{tr("Abritez-vous dans un bâtiment en dur.", "Shelter in a solid building.")}</li>
-              <li>{tr("Fermez portes, fenêtres et aérations.", "Close doors, windows and vents.")}</li>
-              <li>{tr("Écoutez les autorités et n’évacuez que sur leur ordre.", "Follow official guidance and evacuate only when instructed.")}</li>
+              <li>{t("informationContent.shelterInASolidBuilding")}</li>
+              <li>{t("informationContent.closeDoorsWindowsAndVents")}</li>
+              <li>{t("informationContent.followOfficialGuidanceAndEvacuateOnlyWhenInstructed")}</li>
             </ul>
-            <a className="secondary mt-3 inline-flex" href="https://www.georisques.gouv.fr/me-preparer-me-proteger/que-faire-en-cas-de-feu-de-foret" rel="noreferrer" target="_blank">{tr("Voir les consignes complètes", "Read the full guidance")}</a>
+            <a className="secondary mt-3 inline-flex" href="https://www.georisques.gouv.fr/me-preparer-me-proteger/que-faire-en-cas-de-feu-de-foret" rel="noreferrer" target="_blank">{t("informationContent.readTheFullGuidance")}</a>
           </div>
         </InformationAccordion>
 
-        <InformationAccordion icon="layers" title={tr("Comprendre les autres couches", "Understand the other layers")}>
+        <InformationAccordion icon="layers" title={t("informationContent.understandTheOtherLayers")}>
           <div className="grid gap-4 px-5 text-sm leading-[1.6] md:grid-cols-2">
-            <div><strong>{tr("Halos thermiques", "Thermal halos")}</strong><p className="my-1 text-muted">{tr("Ils rendent les concentrations de signaux plus lisibles. Ce ne sont pas des contours de feu.", "They make concentrations of signals easier to read. They are not fire boundaries.")}</p></div>
-            <div><strong>{tr("Vent à 10 m", "Wind at 10 m")}</strong><p className="my-1 text-muted">{tr("Il montre le déplacement modélisé de l’air, pas la future trajectoire de l’incendie.", "It shows modeled air movement, not the future path of a wildfire.")}</p></div>
-            <div><strong>{tr("Fumée et qualité de l’air", "Smoke and air quality")}</strong><p className="my-1 text-muted">{tr("C’est une estimation CAMS à grande maille, pas une observation locale en direct.", "This is a coarse CAMS estimate, not a live local observation.")}</p></div>
-            <div><strong>{tr("Météo des forêts", "Forest fire weather")}</strong><p className="my-1 text-muted">{tr("Elle indique un niveau de danger départemental, pas la présence d’un feu actif.", "It indicates regional danger, not the presence of an active fire.")}</p></div>
+            <div><strong>{t("informationContent.thermalHalos")}</strong><p className="my-1 text-muted">{t("informationContent.theyMakeConcentrationsOfSignalsEasierToRead")}</p></div>
+            <div><strong>{t("informationContent.windAt10M")}</strong><p className="my-1 text-muted">{t("informationContent.itShowsModeledAirMovementNotTheFuture")}</p></div>
+            <div><strong>{t("informationContent.smokeAndAirQuality")}</strong><p className="my-1 text-muted">{t("informationContent.thisIsACoarseCamsEstimateNotA")}</p></div>
+            <div><strong>{t("informationContent.forestFireWeather")}</strong><p className="my-1 text-muted">{t("informationContent.itIndicatesRegionalDangerNotThePresenceOf")}</p></div>
           </div>
         </InformationAccordion>
 
-        <InformationAccordion icon="sources" title={tr("Sources et alertes officielles", "Sources and official alerts")}>
+        <InformationAccordion icon="sources" title={t("informationContent.sourcesAndOfficialAlerts")}>
           <div className="grid gap-3 px-5 text-sm leading-[1.6]">
-            <p className="mt-0">{tr("Les détections thermiques proviennent de NASA LANCE FIRMS. Le vent et l’air reposent sur Open-Meteo et CAMS, et les données forestières sur l’IGN.", "Thermal detections come from NASA LANCE FIRMS. Wind and air data use Open-Meteo and CAMS, while forest data comes from IGN.")}</p>
-            <p>{tr("Les consignes des autorités restent toujours prioritaires.", "Official guidance always takes priority.")}</p>
+            <p className="mt-0">{t("informationContent.thermalDetectionsComeFromNasaLanceFirmsWind")}</p>
+            <p>{t("informationContent.officialGuidanceAlwaysTakesPriority")}</p>
             <div className="grid gap-2 sm:grid-cols-2">
-              <a className="primary" href="https://fr-alert.gouv.fr/les-alertes" rel="noreferrer" target="_blank">{tr("Consulter FR-Alert", "Open FR-Alert")}</a>
-              <a className="secondary" href="https://lannuaire.service-public.fr/" rel="noreferrer" target="_blank">{tr("Trouver une préfecture", "Find a prefecture")}</a>
+              <a className="primary" href="https://fr-alert.gouv.fr/les-alertes" rel="noreferrer" target="_blank">{t("informationContent.openFrAlert")}</a>
+              <a className="secondary" href="https://lannuaire.service-public.fr/" rel="noreferrer" target="_blank">{t("informationContent.findAPrefecture")}</a>
             </div>
           </div>
         </InformationAccordion>
       </div>
 
-      <p className="mb-0 text-center text-xs leading-normal text-muted">{tr("L’absence de signal ou de publication ne signifie jamais une absence de danger.", "No signal or report never means there is no danger.")}</p>
+      <p className="mb-0 text-center text-xs leading-normal text-muted">{t("informationContent.noSignalOrReportNeverMeansThereIs")}</p>
     </div>
   );
 }
