@@ -2,9 +2,11 @@ import { Prisma } from "@/generated/prisma/client";
 import { mediaKindFromUrl, type CommunityMediaKind } from "@/domain/community-report";
 import { auth } from "@/server/auth";
 import { invalidateCommunityReports } from "@/server/community-report-cache";
+import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
 import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { verifyR2Object } from "@/server/r2";
+import { reportEventBus } from "@/server/realtime/report-event-bus";
 
 const mediaTypeMap: Record<Exclude<CommunityMediaKind, "none">, "PHOTO" | "VIDEO" | "TIKTOK" | "INSTAGRAM" | "EXTERNAL_VIDEO"> = {
   instagram: "INSTAGRAM",
@@ -84,7 +86,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
   }
 
-  await prisma.communityReport.update({
+  const updated = await prisma.communityReport.update({
     data: {
       accuracyMeters: body.accuracyMeters == null ? null : Math.max(0, Math.round(body.accuracyMeters)),
       capturedAt,
@@ -96,9 +98,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       media: mediaCreate ? { create: mediaCreate } : undefined,
       observedZone: zone ?? Prisma.JsonNull,
     },
+    include: { media: true, votes: { select: { value: true } } },
     where: { id },
   });
   invalidateCommunityReports();
+  reportEventBus.publish({
+    data: serializeCommunityReport(updated),
+    reportId: id,
+    type: "report.updated",
+  });
   return Response.json({ ok: true });
 }
 
@@ -111,5 +119,6 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   const deleted = await prisma.communityReport.deleteMany({ where: { id, reporterId: session.user.id } });
   if (deleted.count === 0) return Response.json({ message: "Signalement introuvable ou non autorisé." }, { status: 404 });
   invalidateCommunityReports();
+  reportEventBus.publish({ reportId: id, type: "report.deleted" });
   return new Response(null, { status: 204 });
 }

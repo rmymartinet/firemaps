@@ -17,6 +17,7 @@ import { summarizeFireActivity } from "@/domain/fire-activity";
 import type { Incident, SavedLocation } from "@/domain/models";
 import type { OfficialNotice } from "@/domain/official-notice";
 import type { NearbyPlace } from "@/domain/nearby-place";
+import { applyReportRealtimeEvent } from "@/domain/report-realtime-event";
 import {
   applyCommunityVote,
   COMMUNITY_REPORTS_KEY,
@@ -33,6 +34,7 @@ import type { ForestWeatherDepartment, ForestWeatherZones } from "@/integrations
 import { InformationContent } from "./information-content";
 import { authClient } from "@/lib/auth-client";
 import { useLanguage } from "@/i18n/language-context";
+import { useReportEvents } from "@/hooks/use-report-events";
 import { AuthAccountPanel } from "./auth-account-panel";
 import { CommunityReportForm } from "./community-report-form";
 import { MapSearch } from "./map-search";
@@ -212,6 +214,48 @@ export function MapExperience() {
   const accountModalPanelRef = useRef<HTMLDivElement>(null);
   const informationModalPanelRef = useRef<HTMLDivElement>(null);
   const emergencyModalPanelRef = useRef<HTMLDivElement>(null);
+
+  const reportEventsStatus = useReportEvents((event) => {
+    setCommunityReports((reports) => applyReportRealtimeEvent(reports, event));
+    if (event.type === "report.deleted") {
+      setCommunityVotes((votes) => {
+        if (!Object.prototype.hasOwnProperty.call(votes, event.reportId)) return votes;
+        const nextVotes = { ...votes };
+        delete nextVotes[event.reportId];
+        return nextVotes;
+      });
+    }
+  });
+
+  useEffect(() => {
+    if (reportEventsStatus !== "open") return;
+    const controller = new AbortController();
+
+    fetch("/api/community/reports", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Signalements indisponibles");
+        return response.json();
+      })
+      .then((payload) => {
+        const remoteReports = Array.isArray(payload.reports)
+          ? payload.reports as CommunityReport[]
+          : [];
+        setCommunityReports((reports) => {
+          const remoteIds = new Set(remoteReports.map((report) => report.id));
+          const localReports = reports.filter((report) =>
+            report.storedLocally && !remoteIds.has(report.id));
+          return [...remoteReports, ...localReports];
+        });
+        if (payload.viewerVotes && typeof payload.viewerVotes === "object") {
+          setCommunityVotes(payload.viewerVotes);
+        }
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      });
+
+    return () => controller.abort();
+  }, [reportEventsStatus]);
 
   const closeMobileSheet = (panel: HTMLElement | null, onComplete: () => void) => {
     if (!panel || !window.matchMedia("(max-width: 720px)").matches) {

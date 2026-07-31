@@ -11,8 +11,10 @@ import {
 } from "@/domain/community-report";
 import { auth } from "@/server/auth";
 import { getCachedCommunityReports, invalidateCommunityReports } from "@/server/community-report-cache";
+import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
 import { verifyR2Object } from "@/server/r2";
+import { reportEventBus } from "@/server/realtime/report-event-bus";
 
 const categoryMap = {
   evacuation: "EVACUATION",
@@ -22,7 +24,6 @@ const categoryMap = {
   road: "ROAD",
   smoke: "SMOKE",
 } as const;
-const reverseCategory = Object.fromEntries(Object.entries(categoryMap).map(([key, value]) => [value, key])) as Record<string, CommunityCategory>;
 const mediaTypeMap: Record<Exclude<CommunityMediaKind, "none">, "PHOTO" | "VIDEO" | "TIKTOK" | "INSTAGRAM" | "EXTERNAL_VIDEO"> = {
   instagram: "INSTAGRAM",
   photo: "PHOTO",
@@ -74,62 +75,11 @@ type ReportInput = {
   observedZone?: Array<{ latitude: number; longitude: number }> | null;
 };
 
-function serializeReport(report: {
-  accuracyMeters: number | null;
-  capturedAt: Date | string;
-  category: string;
-  createdAt: Date | string;
-  description: string;
-  directionDegrees: number | null;
-  directionType: string | null;
-  expiresAt: Date | string;
-  id: string;
-  latitude: number | { toString(): string };
-  longitude: number | { toString(): string };
-  observedZone: unknown;
-  reporterId: string | null;
-  media: Array<{ type: string; url: string }>;
-  votes: Array<{ value: number }>;
-}, viewerId?: string): CommunityReport {
-  const iso = (value: Date | string) => typeof value === "string" ? value : value.toISOString();
-  const confirms = report.votes.filter((vote) => vote.value === 1).length;
-  const disputes = report.votes.filter((vote) => vote.value === -1).length;
-  const media = report.media[0];
-  const mediaKind = media?.type === "PHOTO" ? "photo"
-    : media?.type === "VIDEO" ? "video"
-    : media?.type === "TIKTOK" ? "tiktok"
-    : media?.type === "INSTAGRAM" ? "instagram"
-    : media ? "video-link" : "none";
-  const reporterAlias = report.reporterId
-    ? `Membre ${report.reporterId.replace(/[^a-z0-9]/gi, "").slice(-4).toUpperCase().padStart(4, "0")}`
-    : "Membre";
-  return {
-    accuracyMeters: report.accuracyMeters,
-    capturedAt: iso(report.capturedAt),
-    category: reverseCategory[report.category],
-    confirms,
-    createdAt: iso(report.createdAt),
-    description: report.description,
-    directionDegrees: report.directionDegrees,
-    directionType: report.directionType === "smoke" || report.directionType === "spread" ? report.directionType : null,
-    disputes,
-    expiresAt: iso(report.expiresAt),
-    id: report.id,
-    latitude: Number(report.latitude),
-    longitude: Number(report.longitude),
-    mediaKind,
-    mediaUrl: media?.url ?? null,
-    observedZone: report.observedZone as CommunityReport["observedZone"],
-    ownedByViewer: Boolean(viewerId && report.reporterId === viewerId),
-    reporterAlias,
-  };
-}
-
 export async function GET(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   const reports = await getCachedCommunityReports();
   const reportsPayload = groupNearbyCommunityReports(
-    reports.map((report) => serializeReport(report, session?.user?.id)),
+    reports.map((report) => serializeCommunityReport(report, session?.user?.id)),
   );
   const viewerVotes = session?.user
     ? Object.fromEntries(reports.flatMap((report) => {
@@ -266,5 +216,11 @@ export async function POST(request: Request) {
     throw error;
   }
   invalidateCommunityReports();
-  return Response.json({ report: serializeReport(report, session.user.id) }, { status: 201 });
+  const publicReport = serializeCommunityReport(report);
+  reportEventBus.publish({
+    data: publicReport,
+    reportId: report.id,
+    type: "report.created",
+  });
+  return Response.json({ report: serializeCommunityReport(report, session.user.id) }, { status: 201 });
 }

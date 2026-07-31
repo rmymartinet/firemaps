@@ -88,17 +88,22 @@ export function parseCommunityReports(raw: string | null): CommunityReport[] {
   try {
     const value = JSON.parse(raw);
     if (!Array.isArray(value)) return [];
-    return value.filter((item): item is CommunityReport =>
-      typeof item?.id === "string"
-      && typeof item?.latitude === "number"
-      && typeof item?.longitude === "number"
-      && typeof item?.createdAt === "string"
-      && typeof item?.expiresAt === "string"
-      && typeof item?.confirms === "number"
-      && typeof item?.disputes === "number");
+    return value.filter(isCommunityReport);
   } catch {
     return [];
   }
+}
+
+export function isCommunityReport(item: unknown): item is CommunityReport {
+  if (!item || typeof item !== "object") return false;
+  const report = item as Partial<CommunityReport>;
+  return typeof report.id === "string"
+    && typeof report.latitude === "number"
+    && typeof report.longitude === "number"
+    && typeof report.createdAt === "string"
+    && typeof report.expiresAt === "string"
+    && typeof report.confirms === "number"
+    && typeof report.disputes === "number";
 }
 
 export function mediaKindFromUrl(url: string): CommunityMediaKind {
