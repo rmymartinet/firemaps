@@ -119,10 +119,12 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
    (`pg_notify`), avec repli sur une relecture du signalement si la charge
    utile dépasse la limite `pg_notify` (8000 octets, par exemple une zone
    dessinée avec de nombreux points).
-4. Restant : reconnexion automatique du relais serveur lui-même si la
-   connexion `LISTEN` Postgres se coupe (bascule Neon, redémarrage), tests
-   multi-instances et observabilité dédiée. La connexion Postgres utilisée
-   doit être directe (non poolée par PgBouncer) : voir `.env.example`.
+4. Terminé : reconnexion automatique du relais serveur avec délai croissant
+   (1 s à 30 s) si la connexion `LISTEN` Postgres se coupe (bascule Neon,
+   redémarrage).
+5. Restant : tests multi-instances contre une vraie base Postgres et
+   observabilité dédiée. La connexion Postgres utilisée doit être directe
+   (non poolée par PgBouncer) : voir `.env.example`.
 
 ## Lot 11 — Retours utilisateurs prioritaires
 

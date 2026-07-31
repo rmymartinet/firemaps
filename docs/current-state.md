@@ -58,9 +58,9 @@ signalements, médias et votes disposent désormais d'un backend persistant.
 - La diffusion SSE des changements communautaires est en place, y compris le
   relais inter-instances Vercel par Postgres `LISTEN/NOTIFY` : sans lui, un
   client connecté à une instance ne recevrait jamais un événement publié par
-  une autre. Restent à finaliser la reconnexion automatique du relais si la
-  connexion `LISTEN` se coupe, ainsi que les tests multi-instances et
-  l'observabilité dédiée.
+  une autre. Le relais se reconnecte automatiquement avec un délai croissant
+  (1 à 30 s) si la connexion `LISTEN` se coupe. Restent les tests contre une
+  vraie base multi-instances et l'observabilité dédiée.
 - Stabilisation E2E responsive et validation du parcours avec de vrais utilisateurs.
 
 ## Non commencé
