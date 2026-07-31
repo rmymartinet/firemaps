@@ -8,7 +8,18 @@ import {
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export const REPORT_SSE_HEARTBEAT_INTERVAL_MS = 20_000;
+/**
+ * Une fonction serverless Vercel a une durée d'exécution maximale imposée par
+ * la plateforme ; si elle est atteinte, le processus peut être arrêté sans
+ * fermer proprement le flux HTTP, laissant le client croire à tort que la
+ * connexion est toujours active (aucun événement `error`, donc aucune
+ * reconnexion automatique). On referme donc systématiquement la connexion
+ * nous-mêmes bien avant cette limite : le client la voit se terminer
+ * proprement et se reconnecte aussitôt (voir `retry` dans report-sse.ts).
+ */
+export const REPORT_SSE_MAX_CONNECTION_MS = 50_000;
 
 export async function GET(request: Request) {
   startReportEventRelay();
@@ -40,6 +51,7 @@ export async function GET(request: Request) {
         if (!active) return false;
         active = false;
         clearInterval(heartbeat);
+        clearTimeout(maxConnectionTimer);
         request.signal.removeEventListener("abort", abort);
         unsubscribe();
         return true;
@@ -48,6 +60,8 @@ export async function GET(request: Request) {
       const abort = () => {
         if (dispose()) controller.close();
       };
+
+      const maxConnectionTimer = setTimeout(abort, REPORT_SSE_MAX_CONNECTION_MS);
 
       cleanup = () => {
         dispose();
