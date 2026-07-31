@@ -25,6 +25,13 @@ export class ReportEventBus {
       timestamp: new Date().toISOString(),
     } as ReportRealtimeEvent;
 
+    this.dispatch(event);
+
+    return event;
+  }
+
+  /** Diffuse localement un événement déjà formé, reçu d'une autre instance. */
+  dispatch(event: ReportRealtimeEvent): void {
     for (const listener of [...this.listeners]) {
       try {
         listener(event);
@@ -32,8 +39,6 @@ export class ReportEventBus {
         console.error("A report realtime listener failed.", error);
       }
     }
-
-    return event;
   }
 
   get subscriberCount(): number {

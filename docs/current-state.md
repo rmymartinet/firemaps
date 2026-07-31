@@ -55,10 +55,12 @@ signalements, médias et votes disposent désormais d'un backend persistant.
 
 ## En cours
 
-- Diffusion SSE des changements communautaires après écriture en base : bus,
-  route, heartbeat, reconnexion et tests unitaires sont présents dans le travail
-  local, mais les tests multi-clients et la documentation d'exploitation restent
-  à finaliser avant de considérer ce lot comme livré.
+- La diffusion SSE des changements communautaires est en place, y compris le
+  relais inter-instances Vercel par Postgres `LISTEN/NOTIFY` : sans lui, un
+  client connecté à une instance ne recevrait jamais un événement publié par
+  une autre. Restent à finaliser la reconnexion automatique du relais si la
+  connexion `LISTEN` se coupe, ainsi que les tests multi-instances et
+  l'observabilité dédiée.
 - Stabilisation E2E responsive et validation du parcours avec de vrais utilisateurs.
 
 ## Non commencé

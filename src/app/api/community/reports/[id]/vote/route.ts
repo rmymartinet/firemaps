@@ -2,7 +2,7 @@ import { auth } from "@/server/auth";
 import { invalidateCommunityReports } from "@/server/community-report-cache";
 import { prisma } from "@/server/prisma";
 import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
-import { reportEventBus } from "@/server/realtime/report-event-bus";
+import { publishReportEvent } from "@/server/realtime/report-cross-instance-relay";
 
 export async function POST(request: Request, context: RouteContext<"/api/community/reports/[id]/vote">) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -33,7 +33,7 @@ export async function POST(request: Request, context: RouteContext<"/api/communi
   invalidateCommunityReports();
   const confirms = grouped.find((item) => item.value === 1)?._count ?? 0;
   const disputes = grouped.find((item) => item.value === -1)?._count ?? 0;
-  reportEventBus.publish({
+  publishReportEvent({
     data: { confirms, disputes, score: confirms - disputes },
     reportId: id,
     type: "report.vote-updated",

@@ -6,7 +6,7 @@ import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
 import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
 import { verifyR2Object } from "@/server/r2";
-import { reportEventBus } from "@/server/realtime/report-event-bus";
+import { publishReportEvent } from "@/server/realtime/report-cross-instance-relay";
 
 const mediaTypeMap: Record<Exclude<CommunityMediaKind, "none">, "PHOTO" | "VIDEO" | "TIKTOK" | "INSTAGRAM" | "EXTERNAL_VIDEO"> = {
   instagram: "INSTAGRAM",
@@ -102,7 +102,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     where: { id },
   });
   invalidateCommunityReports();
-  reportEventBus.publish({
+  publishReportEvent({
     data: serializeCommunityReport(updated),
     reportId: id,
     type: "report.updated",
@@ -119,6 +119,6 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   const deleted = await prisma.communityReport.deleteMany({ where: { id, reporterId: session.user.id } });
   if (deleted.count === 0) return Response.json({ message: "Signalement introuvable ou non autorisé." }, { status: 404 });
   invalidateCommunityReports();
-  reportEventBus.publish({ reportId: id, type: "report.deleted" });
+  publishReportEvent({ reportId: id, type: "report.deleted" });
   return new Response(null, { status: 204 });
 }

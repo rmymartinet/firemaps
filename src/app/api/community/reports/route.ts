@@ -14,7 +14,7 @@ import { getCachedCommunityReports, invalidateCommunityReports } from "@/server/
 import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
 import { verifyR2Object } from "@/server/r2";
-import { reportEventBus } from "@/server/realtime/report-event-bus";
+import { publishReportEvent } from "@/server/realtime/report-cross-instance-relay";
 
 const categoryMap = {
   evacuation: "EVACUATION",
@@ -217,7 +217,7 @@ export async function POST(request: Request) {
   }
   invalidateCommunityReports();
   const publicReport = serializeCommunityReport(report);
-  reportEventBus.publish({
+  publishReportEvent({
     data: publicReport,
     reportId: report.id,
     type: "report.created",

@@ -1,3 +1,4 @@
+import { startReportEventRelay } from "@/server/realtime/report-cross-instance-relay";
 import { reportEventBus } from "@/server/realtime/report-event-bus";
 import {
   serializeReportSseEvent,
@@ -10,6 +11,7 @@ export const runtime = "nodejs";
 export const REPORT_SSE_HEARTBEAT_INTERVAL_MS = 20_000;
 
 export async function GET(request: Request) {
+  startReportEventRelay();
   const encoder = new TextEncoder();
   let cleanup = () => undefined;
 
