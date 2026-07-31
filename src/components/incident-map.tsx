@@ -723,7 +723,7 @@ function SelectedLocation({
               closeSelection();
             }} type="button">{t("incidentMap.cancel")}</button>
           </div>
-          {kind === "search" && <small>{t("incidentMap.addressSource")}: IGN · Géoplateforme</small>}
+          {kind === "search" && <small>{t("incidentMap.addressSource")}: OpenStreetMap · Photon</small>}
         </div>
       </Popup>
     </Marker>

@@ -1,4 +1,5 @@
 import { autocompleteAddress } from "@/integrations/geoplateforme";
+import { autocompleteWorldwide } from "@/integrations/photon";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,22 @@ export async function GET(request: Request) {
       { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
+
+  try {
+    const worldwideSuggestions = await autocompleteWorldwide(
+      query,
+      request.headers.get("accept-language"),
+    );
+    if (worldwideSuggestions.length > 0) {
+      return Response.json(
+        { suggestions: worldwideSuggestions },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+  } catch {
+    // IGN remains a useful fallback when the worldwide provider is unavailable.
+  }
+
   try {
     return Response.json(
       { suggestions: await autocompleteAddress(query) },

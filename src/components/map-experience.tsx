@@ -1303,7 +1303,7 @@ export function MapExperience() {
             <div><dt>{t("mapExperience.detectedFires")}</dt><dd>NASA LANCE FIRMS · VIIRS.</dd></div>
             <div><dt>{t("mapExperience.perimetersAndHistory")}</dt><dd>{t("mapExperience.effisAndBdiffSeparateFromRecentDetections")}</dd></div>
             <div><dt>{t("mapExperience.windSmokeAndAirQuality")}</dt><dd>Open-Meteo, Météo-France models and CAMS.</dd></div>
-            <div><dt>{t("mapExperience.addressesAndVegetation")}</dt><dd>IGN · Géoplateforme.</dd></div>
+            <div><dt>{t("mapExperience.addressesAndVegetation")}</dt><dd>OpenStreetMap · Photon · IGN.</dd></div>
             <div><dt>{t("mapExperience.baseMaps")}</dt><dd>Esri, Maxar, Earthstar Geographics and the GIS community.</dd></div>
             <div><dt>{t("mapExperience.communityObservations")}</dt><dd>{t("mapExperience.userContributionsShownAsUnverifiedByDefault")}</dd></div>
           </dl>
@@ -2109,7 +2109,7 @@ export function MapExperience() {
               <div><dt>{t("mapExperience.detectedFires")}</dt><dd>NASA LANCE FIRMS · VIIRS.</dd></div>
               <div><dt>{t("mapExperience.perimetersAndHistory")}</dt><dd>EFFIS and BDIFF.</dd></div>
               <div><dt>{t("mapExperience.windSmokeAndAirQuality")}</dt><dd>Open-Meteo, Météo-France and CAMS.</dd></div>
-              <div><dt>{t("mapExperience.addressesAndVegetation")}</dt><dd>IGN · Géoplateforme.</dd></div>
+              <div><dt>{t("mapExperience.addressesAndVegetation")}</dt><dd>OpenStreetMap · Photon · IGN.</dd></div>
               <div><dt>{t("mapExperience.baseMaps")}</dt><dd>Esri, Maxar, Earthstar and the GIS community.</dd></div>
               <div><dt>{t("mapExperience.communityObservations")}</dt><dd>{t("mapExperience.contributionsAreUnverifiedByDefault")}</dd></div>
             </dl>
