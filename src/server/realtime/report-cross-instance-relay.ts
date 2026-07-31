@@ -79,8 +79,18 @@ function scheduleRelayReconnect(): void {
 }
 
 function connectRelay(): void {
-  const connectionString = process.env.DATABASE_URL;
+  // LISTEN exige une connexion directe : un pooler PgBouncer en mode
+  // transaction (utilisé par DATABASE_URL sur Neon/Vercel) peut faire
+  // circuler une même session logique entre plusieurs connexions physiques,
+  // ce qui empêche LISTEN de recevoir les notifications de façon fiable.
+  const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (!connectionString) return;
+  if (!process.env.DATABASE_URL_UNPOOLED) {
+    console.warn(
+      "DATABASE_URL_UNPOOLED n'est pas configurée : le relais inter-instances utilise DATABASE_URL, "
+      + "qui peut être poolée (PgBouncer) et rendre LISTEN/NOTIFY peu fiable entre plusieurs instances.",
+    );
+  }
 
   const client = new Client({ connectionString });
   globalRelay.firemapsReportEventRelayClient = client;
