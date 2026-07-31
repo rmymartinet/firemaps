@@ -20,3 +20,4 @@ Au 31 juillet 2026 :
 - En l’absence d’API nationale opérationnelle validée, la page Informations donne accès aux portails officiels sans prétendre les synchroniser.
 - La déduplication inter-capteurs durable reste différée ; la recherche et les détections ne sont plus limitées à la France.
 - Les couches optionnelles Sentinel-2 et MTG-FRP sont retirées de l’interface : leur apport était trop ambigu ou trop retardé pour l’objectif de lecture immédiate de la carte.
+- Les changements de signalements communautaires sont diffusés en direct par Server-Sent Events, relayés entre instances Vercel par Postgres LISTEN/NOTIFY plutôt qu'un service pub/sub externe.

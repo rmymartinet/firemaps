@@ -89,9 +89,28 @@ Les signalements, géométries, médias et votes sont persistés côté serveur 
 fichiers sont envoyés vers Cloudflare R2 au moyen d'URL signées courtes.
 
 Les lectures communautaires partagent un cache Next/Vercel de 20 secondes,
-invalidé après une création, une modification, un vote ou une suppression. Un
-flux SSE de diffusion des changements est en cours de développement et n'est
-pas encore considéré comme une fonctionnalité livrée.
+invalidé après une création, une modification, un vote ou une suppression.
+
+## Synchronisation temps réel des signalements
+
+Chaque écriture (création, modification, suppression, vote) publie un
+événement sur un bus en mémoire (`src/server/realtime/report-event-bus.ts`),
+diffusé aux clients connectés à la même instance par la route Server-Sent
+Events `/api/community/reports/events`. Le client (`useReportEvents`) se
+reconnecte automatiquement, applique les événements localement et effectue
+une resynchronisation HTTP complète après une reconnexion.
+
+Comme Vercel peut exécuter plusieurs instances en parallèle, un relais
+Postgres `LISTEN/NOTIFY` (`src/server/realtime/report-cross-instance-relay.ts`)
+propage aussi chaque événement aux autres instances via `pg_notify`. Un
+événement dont la charge utile dépasserait la limite de 8000 octets de
+`pg_notify` (typiquement une zone dessinée avec beaucoup de points) est
+remplacé par un identifiant minimal ; l'instance réceptrice relit alors le
+signalement complet avant de le diffuser. La connexion d'écoute se reconnecte
+avec un délai croissant (1 à 30 s) si elle se coupe. Voir
+[ADR-012](../adr/ADR-012-postgres-notify-realtime-relay.md) pour le détail des
+alternatives et limites (connexion Neon directe requise, livraison au mieux
+effort).
 
 La découverte vidéo passe par `/api/videos/discover`. La route valide un nom de lieu, construit deux requêtes limitées aux domaines TikTok et Instagram, puis appelle Brave Search avec une clé exclusivement serveur. L’adaptateur filtre les autres domaines et déduplique les URL. L’outil ne scrape pas les plateformes, ne télécharge aucun média et ne publie aucun résultat sans action humaine.
 

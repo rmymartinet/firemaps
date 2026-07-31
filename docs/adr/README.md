@@ -11,5 +11,6 @@
 - [ADR-009 — Couche de vent Open-Meteo/Météo-France](ADR-009-open-meteo-wind-layer.md)
 - [ADR-010 — Sentinel-2 comme couche haute définition à la demande](ADR-010-sentinel-2-on-demand.md)
 - [ADR-011 — Recherche mondiale avec Photon](ADR-011-worldwide-search-with-photon.md)
+- [ADR-012 — Postgres LISTEN/NOTIFY comme relais temps réel inter-instances](ADR-012-postgres-notify-realtime-relay.md)
 
 Créer un ADR uniquement pour une décision structurante difficile à inverser ou qui guide plusieurs changements.
