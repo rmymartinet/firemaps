@@ -5,7 +5,12 @@ dans PostgreSQL via Prisma. Les médias sont téléversés directement vers
 Cloudflare R2 avec une URL signée de courte durée, puis vérifiés côté serveur
 avant d’être associés à une contribution.
 
-Les recherches d’adresse passent par une route serveur sans cache puis par l’IGN Géoplateforme. Firemaps ne les stocke pas, mais elles peuvent apparaître dans les journaux techniques de l’hébergeur ou du fournisseur. Avant production, désactiver la journalisation des chaînes de requête ou définir une rétention minimale et l’expliquer dans l’information de confidentialité.
+Les recherches d'adresse passent par une route serveur sans cache puis par
+Photon/OpenStreetMap, avec IGN Géoplateforme comme secours français. Firemaps
+ne les stocke pas, mais elles peuvent apparaître dans les journaux techniques
+de l'hébergeur ou des fournisseurs. Avant production, désactiver la
+journalisation des chaînes de requête ou définir une rétention minimale et
+l'expliquer dans l'information de confidentialité.
 
 ## Protection des contributions
 

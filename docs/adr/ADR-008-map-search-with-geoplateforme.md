@@ -1,6 +1,6 @@
 # ADR-008 — Recherche sur la carte avec IGN Géoplateforme
 
-- Statut : accepté
+- Statut : remplacé par ADR-011
 - Date : 2026-07-25
 
 ## Contexte
@@ -25,4 +25,8 @@ Recherche accessible immédiatement, recentrage rapide, source explicite, aucune
 
 ## Conséquences négatives
 
-La requête d’adresse est transmise à un service externe ; le quota et la disponibilité s’appliquent. L’outre-mer n’est pas encore couvert. La surveillance locale reste à rattacher à la sélection.
+La requête d'adresse est transmise à un service externe ; le quota et la disponibilité s'appliquent. L'outre-mer n'est pas encore couvert. La surveillance locale reste à rattacher à la sélection.
+
+Cette décision décrit l'intégration initiale. Depuis le 31 juillet 2026,
+Photon/OpenStreetMap fournit la couverture mondiale et IGN ne sert plus que de
+secours métropolitain.

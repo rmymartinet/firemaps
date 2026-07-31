@@ -10,7 +10,7 @@ Next.js/TypeScript, layout mobile, navigation, PWA minimale, Leaflet, modèles i
 
 1. Terminé : consentement de géolocalisation depuis la carte, précision annoncée et erreurs permission/indisponibilité.
 2. Terminé : calcul géodésique de distance et synthèse de la détection affichée la plus proche.
-3. Terminé : recherche et autocomplétion IGN Géoplateforme directement sur la carte.
+3. Terminé : recherche mondiale Photon/OpenStreetMap directement sur la carte, avec IGN Géoplateforme en secours.
 4. Terminé : un lieu en `localStorage`, remplacement/suppression et tests.
 5. Terminé : états permission refusée, hors-ligne et aucune donnée. Restant : tests UI automatisés de ces états.
 
@@ -31,7 +31,8 @@ Next.js/TypeScript, layout mobile, navigation, PWA minimale, Leaflet, modèles i
 4. Terminé : tests fixtures et affichage sourcé.
 5. Terminé : vérification avec clé réelle, filtres temporels, regroupement au zoom, fond satellite et couche EFFIS hebdomadaire séparée et masquée par défaut.
 6. Retiré de l’interface après évaluation : inspection Sentinel-2 L2A et pixels MTG-FRP, jugés trop ambigus ou trop retardés pour la lecture immédiate recherchée.
-7. Restant : schéma runtime complet, déduplication inter-capteurs différée et import/cache vectoriel EFFIS. L’outre-mer est hors périmètre demandé.
+7. Terminé : couverture FIRMS mondiale par emprise visible et respect de la plage fournisseur de 1 à 5 jours.
+8. Restant : schéma runtime complet, déduplication inter-capteurs différée et import/cache vectoriel EFFIS.
 
 ## Lot 5 — Informations officielles et vent
 
@@ -105,8 +106,64 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
    public des utilisateurs.
 6. Détecter les votes coordonnés et interdire le vote sur sa propre
    contribution.
-7. Ajouter une file de modération, un journal d’audit et des actions de
+7. Ajouter une file de modération, un journal d'audit et des actions de
    suspension, regroupement et masquage.
+
+## Lot 10 — Synchronisation temps réel
+
+1. En cours : diffuser les créations, modifications, suppressions et votes par
+   Server-Sent Events après validation en base.
+2. En cours : reconnexion automatique, heartbeat, validation runtime des
+   événements et resynchronisation par instantané HTTP.
+3. Restant : tests multi-clients, observabilité, documentation d'exploitation
+   et validation du comportement sur plusieurs instances Vercel.
+
+## Lot 11 — Retours utilisateurs prioritaires
+
+Source : [`product/user-feedback-2026-07.md`](product/user-feedback-2026-07.md).
+
+Ordre P0 retenu :
+
+1. Mesurer puis optimiser zoom, déplacement, clustering et rendu des halos sur
+   des téléphones modestes avec un jeu de données dense.
+2. Auditer la présence et la compréhension de la source, de la date
+   d'observation et de la dernière synchronisation sur chaque type de fiche.
+3. Renforcer la confiance communautaire : e-mail vérifié, score explicable,
+   votes coordonnés, preuve encouragée mais jamais obtenue au prix d'un danger.
+4. Finaliser le mode hors connexion : données enregistrées, âge, expiration,
+   impossibilité de confondre cache et information actuelle.
+5. Terminer les tests mobiles, l'accessibilité et les raccourcis essentiels.
+
+Ordre P1 après stabilisation :
+
+6. Concevoir les alertes de proximité opt-in, avec rayon, fréquence, silence,
+   désinscription et protection de la localisation.
+7. Ajouter à la demande points d'eau, hôpitaux et accueils/refuges seulement
+   après validation des sources, attributs, licences et fraîcheur.
+8. Améliorer intensité thermique, fumée, occupation du sol et code couleur sans
+   transformer ces données en niveau de gravité inventé.
+9. Augmenter la place des médias vérifiés après modération, suppression EXIF et
+   maîtrise des coûts R2.
+
+## Lot 12 — API et partenariats
+
+1. Spécifier une API publique Firemaps en lecture seule, versionnée, attribuée,
+   documentée et limitée en débit.
+2. Définir un contrat de données séparé pour officiel, satellite et citoyen ;
+   ne jamais exposer les secrets fournisseurs ni les données privées.
+3. Contacter autorités, associations et opérateurs de drones avant toute
+   transmission automatisée ou fonction opérationnelle.
+4. Étudier un mécanisme de dons uniquement après définition des bénéficiaires,
+   obligations légales, frais et règles de transparence.
+
+## Hors roadmap sans source ou validation adaptée
+
+- itinéraire d'évacuation calculé ou promesse de « zone sûre » ;
+- vitesse/direction de propagation déduite du vent seul ;
+- notification automatique des secours sans intégration officielle ;
+- nombre public de personnes bloquées ;
+- migration animale extrapolée ;
+- confirmation d'un feu ou consigne générée uniquement par IA.
 
 # Après la vue opérationnelle
 

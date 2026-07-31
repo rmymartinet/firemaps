@@ -1,6 +1,8 @@
-# Sentinel
+# Firemaps
 
-PWA mobile-first d’information citoyenne pendant les incendies. Sentinel aide à comprendre les informations connues et leurs limites ; elle ne remplace ni les secours ni les alertes officielles.
+PWA cartographique mondiale d'information citoyenne pendant les incendies.
+Firemaps aide à comprendre les informations connues et leurs limites ; elle ne
+remplace ni les secours ni les alertes officielles.
 
 ## Démarrer
 
@@ -12,11 +14,17 @@ npm install
 npm run dev
 ```
 
-Créer gratuitement une clé NASA FIRMS sur `https://firms.modaps.eosdis.nasa.gov/api/map_key/`, puis renseigner `NASA_FIRMS_MAP_KEY` dans `.env.local`.
+Créer gratuitement une clé NASA FIRMS sur `https://firms.modaps.eosdis.nasa.gov/api/map_key/`, puis renseigner `NASA_FIRMS_MAP_KEY` dans `.env.local`. La route mondiale interroge l'emprise visible sur une période maximale de cinq jours.
+
+Pour les comptes et contributions, configurer également PostgreSQL Neon,
+Better Auth, Resend et Cloudflare R2 selon `.env.example`, puis appliquer les
+migrations avec `npm run db:deploy`.
 
 La découverte semi-automatique de liens vidéo publics est facultative. Créer une clé Brave Search sur `https://api.search.brave.com/`, puis renseigner `BRAVE_SEARCH_API_KEY` côté serveur.
 
-Ouvrir `http://localhost:3000`. Les marqueurs orange représentent des détections thermiques satellite des dernières 24 heures, jamais des incendies confirmés.
+Ouvrir `http://localhost:3000`. Les marqueurs rouges représentent des détections
+thermiques satellite récentes, jamais des incendies confirmés. La recherche de
+lieux est mondiale grâce à Photon/OpenStreetMap, avec IGN comme secours français.
 
 ## Vérifier
 

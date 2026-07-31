@@ -1,7 +1,19 @@
 # Périmètre MVP
 
-Inclus : carte sourcée, “autour de moi”, une adresse locale, informations officielles, mode urgence, observation citoyenne modérée manuellement, PWA installable.
+Inclus : carte mondiale sourcée, « autour de moi », recherche mondiale,
+informations officielles, numéros d'urgence selon le pays, comptes,
+observations citoyennes persistées avec photo/vidéo et votes, PWA installable.
 
-Exclus : comptes, social, itinéraire d’évacuation, prédiction de propagation, IA image, notifications avancées, paiements et application native complète.
+Exclus : réseau social généraliste, itinéraire d'évacuation, prédiction de
+propagation, validation automatique d'image par IA, paiements et application
+native complète. Une administration de modération complète et les notifications
+push serveur restent à réaliser.
 
-La carte charge les détections réelles NASA FIRMS via une route serveur lorsqu’une clé est configurée. La géolocalisation consentie, la distance à la détection affichée la plus proche et un lieu surveillé dans `localStorage` sont disponibles. Aucun backend persistant ni flux officiel national structuré n’est connecté ; la page Informations dirige vers FR-Alert, Géorisques/Météo des forêts et l’annuaire officiel des préfectures.
+La carte charge les détections NASA FIRMS de l'emprise visible via une route
+serveur lorsqu'une clé est configurée. La période récente est limitée à cinq
+jours par le fournisseur. La géolocalisation consentie, la distance à la
+détection affichée la plus proche et un lieu surveillé localement sont
+disponibles. Les contributions utilisent PostgreSQL Neon/Prisma, Better Auth et
+Cloudflare R2. Aucun flux officiel mondial homogène d'incendies confirmés ou de
+consignes n'est connecté ; les sources officielles restent présentées
+séparément.

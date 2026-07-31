@@ -1,10 +1,13 @@
 # État actuel
 
-Mis à jour le 2026-07-26. Source de vérité opérationnelle.
+Mis à jour le 2026-07-31. Source de vérité opérationnelle.
 
 ## État global
 
-Lot 1 implémenté et première intégration réelle NASA FIRMS codée. Le dépôt contient une PWA mobile-first navigable. Avec une clé configurée, la carte affiche les anomalies thermiques VIIRS des dernières 24 heures en métropole et Corse ; elles ne constituent jamais des incendies confirmés.
+Firemaps est une PWA mobile-first mondiale. Avec une clé configurée, la carte
+affiche les anomalies thermiques VIIRS de l'emprise visible sur une période de
+1 à 5 jours ; elles ne constituent jamais des incendies confirmés. Les comptes,
+signalements, médias et votes disposent désormais d'un backend persistant.
 
 ## Terminé
 
@@ -12,8 +15,8 @@ Lot 1 implémenté et première intégration réelle NASA FIRMS codée. Le dép�
 - Tailwind CSS v4 configuré via PostCSS ; migration du shell et de la navigation
   effectuée. La migration des composants continue, tandis que Leaflet, les
   filtres SVG et les animations conservent une petite feuille globale technique.
-- Shell mobile, navigation Carte/Informations/Urgence.
-- Carte Leaflet centrée sur la France, alimentée par la route serveur FIRMS.
+- Shell cartographique responsive ; Informations, urgence, compte et outils s'ouvrent sans quitter la carte.
+- Carte Leaflet initialement cadrée sur la France mais capable de charger FIRMS partout dans le monde.
 - Adaptateur CSV NASA FIRMS pour VIIRS Suomi-NPP, NOAA-20 et NOAA-21.
 - Gestion d’une source partielle, absente ou non configurée sans masquer l’échec.
 - Séparation de l’heure d’observation fournisseur et de l’heure d’ingestion.
@@ -23,7 +26,7 @@ Lot 1 implémenté et première intégration réelle NASA FIRMS codée. Le dép�
 - Couches Sentinel-2 L2A et MTG-FRP retirées de l’interface après évaluation : elles ne répondaient pas assez clairement à la lecture immédiate des signaux récents.
 - Fond hybride Esri World Imagery par défaut, avec limites/noms, et bascule vers OpenStreetMap.
 - Légende explicite : point FIRMS = surface inconnue ; zone rouge EFFIS = estimation disponible ; absence de zone ≠ absence de feu.
-- Barre de recherche directement sur la carte avec autocomplétion IGN Géoplateforme, recentrage et repère de lieu.
+- Barre de recherche mondiale directement sur la carte avec Photon/OpenStreetMap, secours IGN Géoplateforme, recentrage et repère de lieu.
 - Sélection manuelle d’un lieu par clic sur la carte, avec coordonnées, distance et surveillance locale.
 - Géolocalisation consentie sur la carte, précision navigateur, calcul de distance vers la détection affichée la plus proche et avertissement sans verdict de sécurité.
 - Un lieu surveillé stocké uniquement dans `localStorage`, remplaçable, consultable et supprimable.
@@ -39,12 +42,12 @@ Lot 1 implémenté et première intégration réelle NASA FIRMS codée. Le dép�
   localement, permet une correction
   manuelle, copie les coordonnées et exige une confirmation avant d’ouvrir
   l’appel.
-- Formulaire communautaire mobile-first : catégorie, date, localisation actuelle, adresse IGN ou point transmis depuis la carte, description, photo/vidéo capturée ou lien vidéo public.
+- Formulaire communautaire mobile-first : catégorie, géométrie point/zone/limite, date automatique, recherche mondiale ou position choisie, description et photo/vidéo facultative.
 - Un clic libre sur la carte ouvre automatiquement la popup du point choisi avec « Signaler ici » et « Annuler ». Le signalement s’ouvre dans une feuille modale au-dessus de la carte, sans navigation, puis actualise immédiatement les marqueurs locaux.
 - La feuille modale est optimisée pour un signalement en quelques secondes : catégorie, média facultatif, publication ; heure, point, statut et expiration sont automatiques. Les champs secondaires sont repliés.
 - Refonte de lisibilité mobile : carte dominante, résumé vitré compact, périodes « Maintenant/Aujourd’hui/24 heures », localisation et signalement flottants, couches regroupées sous « Ce que je veux voir » et vocabulaire non technique.
 - Les popups satellite montrent d’abord une phrase simple, l’âge et l’absence éventuelle de confirmation officielle ; capteur, confiance, FRP et limites détaillées restent accessibles sous « Voir les détails ».
-- Marqueurs communautaires distincts sur la carte, fiche média, confirmations/contestations, statuts non vérifié/soutenu/contesté et expiration selon la catégorie.
+- Better Auth, PostgreSQL Neon/Prisma, Cloudflare R2, marqueurs communautaires distincts, fiche média, confirmations/contestations et expiration selon la catégorie.
 - Outil de découverte vidéo semi-automatique : recherche Brave ciblée par lieu sur les liens publics TikTok/Instagram, déduplication, ouverture pour vérification et préremplissage du signalement.
 - Manifeste, icône SVG, service worker réseau-d’abord limité au shell.
 - Modèles TypeScript, règles de fraîcheur, distance, stockage local, regroupement et normalisation, avec vingt-et-un tests unitaires et un test d’interface.
@@ -52,15 +55,25 @@ Lot 1 implémenté et première intégration réelle NASA FIRMS codée. Le dép�
 
 ## En cours
 
-Aucune fonctionnalité en cours après le lot initial.
+- Diffusion SSE des changements communautaires après écriture en base : bus,
+  route, heartbeat, reconnexion et tests unitaires sont présents dans le travail
+  local, mais les tests multi-clients et la documentation d'exploitation restent
+  à finaliser avant de considérer ce lot comme livré.
+- Stabilisation E2E responsive et validation du parcours avec de vrais utilisateurs.
 
 ## Non commencé
 
-Supabase, synchronisation réelle des observations et votes entre utilisateurs, stockage serveur des médias, modération, administration, ingestion structurée de confirmations officielles, météo locale plus dense, déduplication durable inter-capteurs différée, abris/routes et déploiement. L’outre-mer est hors périmètre demandé.
+Administration complète de modération, journal d'audit, vérification obligatoire
+de l'e-mail avant contribution, nettoyage/analyse des médias, ingestion mondiale
+structurée de confirmations officielles, météo locale plus dense,
+déduplication durable inter-capteurs et notifications push serveur.
 
 ## Architecture actuelle
 
-Monolithe Next.js ; composants serveur par défaut, Leaflet et chargement des incidents côté client. Domaine typé dans `src/domain`. Adaptateur FIRMS dans `src/integrations`, protégé par une route serveur dynamique dans `src/app/api`. Aucune base.
+Monolithe Next.js ; composants serveur par défaut, Leaflet et chargement des
+incidents côté client. Domaine typé dans `src/domain`. Les intégrations externes
+passent par des routes serveur. PostgreSQL Neon/Prisma persiste les contributions,
+Better Auth gère l'identité et Cloudflare R2 stocke les médias.
 
 ## Dette technique et limites
 
@@ -75,22 +88,25 @@ Monolithe Next.js ; composants serveur par défaut, Leaflet et chargement des in
 - La couche NRT VIIRS EFFIS a été retirée de l’interface après observation de grands blocs trompeurs ; `modis.ba.poly.week`, plus consolidée mais plus lente, la remplace.
 - Les hachures EFFIS ne sont pas encore réalisables : WFS/GetFeature n’a renvoyé aucune donnée en 60 s. Aucun faux polygone FIRMS n’est généré.
 - L’imagerie Esri n’est pas en direct ; licence, quota et fournisseur doivent être contractualisés ou confirmés avant production.
-- La requête couvre seulement métropole et Corse.
-- La recherche d’adresse couvre seulement la métropole et dépend du quota/disponibilité Géoplateforme.
+- La route FIRMS couvre le monde mais refuse les vues presque globales et ne peut demander que 1 à 5 jours à l'API Area.
+- La recherche mondiale dépend du service public Photon ; IGN ne couvre que le repli métropolitain. Une forte audience exigera un service de géocodage dimensionné.
 - Le vent est une sortie de modèles AROME/ARPEGE sur une grille fixe espacée : il ne reflète pas nécessairement le relief ou les rafales locales et ne prédit pas le déplacement du feu.
 - L’offre Open-Meteo gratuite documentée convient au prototype non commercial ; un usage commercial exigera une offre adaptée.
 - Une recherche peut apparaître dans les journaux d’URL de l’hébergeur ou du fournisseur ; politique de rétention à définir avant production.
 - Aucun flux public national documenté ne permet actuellement d’ingérer proprement toutes les consignes opérationnelles SDIS/préfectures ; les portails officiels sont seulement liés.
 - Le cache hors ligne ne possède pas encore de durée d’expiration ferme côté navigateur.
 - Les routes serveur expérimentales Sentinel-2 et MTG-FRP restent dans le dépôt alors que leurs couches clientes ont été retirées ; elles pourront être supprimées lors d’un nettoyage technique.
-- Le prototype communautaire utilise `localStorage` pour les fiches et IndexedDB pour les photos/vidéos : ses signalements, médias et votes ne sont visibles que sur le même appareil. Un média est limité à 15 Mo.
+- Les contributions sont persistées dans Neon et les médias dans R2. Le stockage local ne constitue plus la source partagée de vérité.
 - La découverte vidéo dépend de l’indexation du moteur Brave : elle peut manquer des publications récentes, retourner des vidéos anciennes ou attribuées à tort au lieu recherché. Aucun candidat n’est publié automatiquement.
-- Aucun traitement serveur ne retire encore les EXIF des photos. Le prototype ne doit donc pas être ouvert au public avant stockage privé, nettoyage des métadonnées, limitation de débit et modération.
+- Aucun traitement serveur ne retire encore les EXIF des photos. R2, les limites de débit et l'authentification sont présents, mais nettoyage des métadonnées, analyse et modération restent requis pour un déploiement à grande échelle.
 - `npm audit --omit=dev` remonte trois paquets de production (`next`, `postcss`, `sharp`) avec sévérité haute. Le correctif automatique proposé rétrograde Next.js vers 9.3.3 et n’est donc pas acceptable ; surveiller une correction amont, sans `audit fix --force`.
 
 ## Blocages
 
-La clé `NASA_FIRMS_MAP_KEY` devra être ajoutée à l’environnement de déploiement. Le passage du prototype communautaire local à une fonctionnalité publique exige un projet Supabase sécurisé et une modération.
+Les services externes doivent être configurés dans chaque environnement de
+déploiement. Avant une ouverture à grande échelle, il reste surtout à ajouter
+la vérification obligatoire de l'e-mail, le nettoyage/analyse des médias et une
+interface de modération avec journal d'audit.
 
 ## Risques
 
@@ -113,7 +129,8 @@ npm run build
 
 ## Tests et build
 
-Validation du 2026-07-25 :
+Historique de validation complète du 2026-07-25 (les nombres de routes et de
+tests ci-dessous décrivent ce jalon, pas le dépôt actuel) :
 
 - `npm run lint` : réussi.
 - `npm run typecheck` : réussi.
@@ -132,7 +149,11 @@ Validation du 2026-07-25 :
 
 ## Déploiement
 
-Non configuré, non déployé. Vercel est la cible initiale envisagée.
+L'application est déployable sur Vercel avec PostgreSQL Neon, Cloudflare R2 et
+Resend. Les variables requises sont décrites dans `.env.example`. Les règles
+WAF, le domaine média personnalisé, les alertes de dépenses et les seuils
+d'autoscaling restent des opérations manuelles documentées dans
+`docs/architecture/security.md`.
 
 ## Sources connectées
 
@@ -145,13 +166,15 @@ EFFIS est interrogé par WFS pour obtenir les géométries et hectares. Lorsque 
 service vectoriel est indisponible, la couche WMS reste automatiquement
 affichable sans inventer de surface.
 
-Open-Meteo fournit le vent issu des modèles Météo-France. IGN Géoplateforme
-fournit l’autocomplétion d’adresses et lieux. Esri World Imagery fournit le fond
-satellite par défaut et OpenStreetMap le fond plan.
+Open-Meteo fournit le vent issu des modèles Météo-France. Photon/OpenStreetMap
+fournit l'autocomplétion mondiale, avec IGN Géoplateforme comme secours
+français. Esri World Imagery fournit le fond satellite par défaut et
+OpenStreetMap le fond plan.
 
-Sentinel-2 est réintroduit uniquement depuis la fiche d’une zone comme analyse
-optique différée avant/après. Il n’est jamais présenté comme une source temps
-réel. MTG-FRP reste expérimental et non exposé.
+Sentinel-2 a été évalué depuis la fiche d'une zone comme analyse optique
+différée avant/après. Cette expérimentation a finalement été retirée de
+l'interface, comme MTG-FRP ; seules leurs routes serveur restent temporairement
+dans le dépôt.
 
 ## Lecture opérationnelle de la carte
 
@@ -418,15 +441,15 @@ une livraison garantie nécessite toujours :
 
 ## Langues
 
-- L’interface peut être utilisée en français ou en anglais depuis la première
-  section des réglages de la carte.
+- L'interface propose français, anglais, espagnol, italien, allemand,
+  portugais, néerlandais, polonais et arabe depuis les réglages de la carte.
 - Le choix est conservé localement, met à jour la langue du document et adapte
   également les dates, heures et âges des observations.
-- Les textes français et anglais sont centralisés dans
-  `src/i18n/messages/fr.json` et `src/i18n/messages/en.json`. Les composants
+- Les textes sont centralisés dans les catalogues JSON de
+  `src/i18n/messages/`. Les composants
   utilisent désormais des clés avec `t("namespace.message")`, y compris pour
   les messages dynamiques à variables.
-- Un test vérifie que les deux catalogues possèdent les mêmes clés et les mêmes
+- Un test vérifie que les catalogues possèdent les mêmes clés et les mêmes
   variables. Cette structure permet d’ajouter une langue sans modifier chaque
   composant.
 

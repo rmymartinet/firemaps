@@ -9,7 +9,12 @@ Firemaps doit montrer rapidement où des feux potentiels sont observés en Franc
 
 ## Décision
 
-Utiliser les détections VIIRS NRT de NASA FIRMS (Suomi-NPP, NOAA-20, NOAA-21) comme première couche réelle. Les exposer via une route serveur avec clé secrète, cache CDN de 15 minutes, normalisation et dégradation partielle.
+Utiliser les détections VIIRS NRT de NASA FIRMS (Suomi-NPP, NOAA-20, NOAA-21)
+comme première couche réelle. Les exposer via une route serveur avec clé
+secrète, normalisation et dégradation partielle. L'implémentation actuelle
+interroge l'emprise mondiale visible, limite la période à cinq jours comme
+l'exige l'API Area et utilise un cache CDN frais cinq minutes avec trente
+minutes de `stale-while-revalidate`.
 
 ## Alternatives envisagées
 
@@ -25,4 +30,7 @@ Premiers emplacements réels disponibles rapidement ; provenance et confiance co
 
 ## Conséquences négatives
 
-Les points sont des anomalies thermiques, avec faux positifs, omissions, délais et doublons. La première couverture exclut l’outre-mer. Une clé externe et un quota sont nécessaires. Aucune consigne officielle n’en découle.
+Les points sont des anomalies thermiques, avec faux positifs, omissions, délais
+et doublons. Une clé externe et un quota sont nécessaires. Une vue trop large
+doit être rapprochée et l'historique récent exposé par cette route ne dépasse
+pas cinq jours. Aucune consigne officielle n'en découle.

@@ -6,19 +6,20 @@ Fournisseur : NASA LANCE, Fire Information for Resource Management System.
 
 - Origine : anomalies thermiques VIIRS Suomi-NPP, NOAA-20 et NOAA-21 en traitement proche du temps réel.
 - Accès : API Area CSV avec `MAP_KEY` gratuite, conservée uniquement côté serveur.
-- Couverture actuelle : France métropolitaine et Corse, boîte `-5.5,41,10,51.5`, dernières 24 heures.
+- Couverture actuelle : mondiale, limitée à l'emprise visible. À une échelle trop large (`zoom <= 3`), l'API demande de rapprocher la carte pour éviter une réponse démesurée.
+- Période : de 1 à 5 jours. L'API Area FIRMS refuse désormais les plages supérieures à 5 jours ; cette limite est normalisée côté client, route API et adaptateur.
 - Fréquence : liée aux passages satellites ; FIRMS publie du NRT et ses services cartographiques sont actualisés jusqu’à toutes les 15 minutes. Cela ne garantit pas une nouvelle observation toutes les 15 minutes.
 - Précision : pixel VIIRS nominal de 375 m ; le point est le centre d’un pixel contenant une anomalie, pas la position exacte d’une flamme.
 - Limite API annoncée : 5 000 transactions par fenêtre de 10 minutes ; une requête peut compter plusieurs transactions.
 - Format utilisé : CSV, normalisé vers `Incident` avec `sourceType: satellite`.
 - Horodatages : `observedAt` vient de `acq_date`/`acq_time` FIRMS ; `updatedAt` reste égal à l’observation faute d’heure de révision fournisseur ; `ingestedAt` conserve la synchronisation Firemaps.
 - Confiance : les signaux FIRMS élevés deviennent `probable`; tous les autres restent `unverified`. Aucun signal satellite ne devient `confirmed`.
-- Résilience : les trois capteurs sont interrogés indépendamment ; un résultat partiel est signalé. Sans clé ou si tous échouent, aucun marqueur n’est affiché et l’indisponibilité est explicite.
+- Résilience : les trois capteurs sont interrogés indépendamment ; un résultat partiel est signalé. Sans clé ou si tous échouent, l'indisponibilité est explicite et les marqueurs déjà affichés ne sont pas effacés par une erreur transitoire.
 - Conditions : données NASA ouvertes, avec attribution NASA FIRMS ; vérifier les mentions et conditions à chaque évolution du service.
 
-Limites importantes : faux positifs possibles (autres sources de chaleur), feux petits ou masqués par nuage/fumée non détectés, doublons possibles entre capteurs et passages successifs, absence de confirmation opérationnelle. Les départements et territoires ultramarins ne sont pas encore interrogés.
+Limites importantes : faux positifs possibles (autres sources de chaleur), feux petits ou masqués par nuage/fumée non détectés, doublons possibles entre capteurs et passages successifs, absence de confirmation opérationnelle. La couverture mondiale ne garantit pas une détection partout ni à tout instant.
 
-Implémentation : `src/integrations/firms.ts` et `src/app/api/incidents/firms/route.ts`. La réponse HTTP est mise en cache 15 minutes par le CDN avec tolérance stale de 30 minutes ; les erreurs ne sont pas mises en cache.
+Implémentation : `src/integrations/firms.ts` et `src/app/api/incidents/firms/route.ts`. Une réponse réussie est mise en cache cinq minutes par le CDN et peut être servie pendant une réactualisation durant 30 minutes ; les erreurs ne sont pas mises en cache. Le client n'impose plus `no-store`, afin de ne pas contourner ce cache partagé. Les échecs sont journalisés par capteur sans exposer la clé NASA.
 
 ## Fond cartographique
 
@@ -35,21 +36,6 @@ Fournisseur : European Forest Fire Information System, Commission européenne / 
 
 - Accès : WMS public `https://maps.effis.emergency.copernicus.eu/effis`.
 
-## Numéros d’urgence
-
-- Référentiel initial : page officielle de la Commission européenne consacrée
-  au 112 (`https://digital-strategy.ec.europa.eu/en/policies/112`).
-- Couverture actuelle : les 27 pays de l’Union européenne avec le 112, ainsi que
-  les États-Unis avec le 911 vérifié par le National 911 Program
-  (`https://www.911.gov/`). Firemaps n’invente aucun numéro pour un pays absent
-  du référentiel.
-- Détection : `@rapideditor/country-coder` associe localement les coordonnées
-  WGS84 du point choisi (ou du centre de carte) à un code ISO 3166-1. Les
-  coordonnées ne sont pas transmises à un géocodeur tiers pour cette fonction.
-- Sécurité : le pays détecté reste visible et corrigeable, et un second geste
-  est requis avant d’ouvrir un lien `tel:`. Aucun appel automatique.
-- Extension mondiale prévue : intégrer progressivement les entrées vérifiées de
-  la base E.129 de l’UIT, avec source et date de vérification par pays.
 - Couche active : `modis.ba.poly.week`, zones des sept derniers jours issues du produit EFFIS MODIS/Sentinel‑2.
 - Couche rejetée pour l’interface : `effis.nrt.ba.poly`. Son regroupement automatique VIIRS produisait de grands blocs pouvant être interprétés à tort comme des périmètres fiables.
 - Fréquence : produit consolidé plus tardif que FIRMS ; EFFIS traite quotidiennement MODIS et peut raffiner certains périmètres avec Sentinel‑2.
@@ -58,6 +44,22 @@ Fournisseur : European Forest Fire Information System, Commission européenne / 
 - Limites : périmètre algorithmique et satellitaire, pas périmètre opérationnel confirmé ; feux petits ou récents potentiellement absents ; dépendance directe au WMS ; absence d’état détaillé par tuile dans Leaflet.
 
 Les tests GetMap et WFS/GetFeature limités à la France n’ont pas répondu en 60 secondes et ont été interrompus. La couche raster ne bloque pas FIRMS ni le fond de carte, mais sa latence doit être surveillée avant production. Le rendu hachuré interactif exige un flux vectoriel, un proxy/cache EFFIS ou un autre fournisseur fiable ; il n’est pas simulé à partir des points FIRMS.
+
+## Numéros d’urgence
+
+- Référentiel initial : page officielle de la Commission européenne consacrée
+  au 112 (`https://digital-strategy.ec.europa.eu/en/policies/112`).
+- Couverture actuelle : les 27 pays de l'Union européenne avec le 112, ainsi que
+  les États-Unis avec le 911 vérifié par le National 911 Program
+  (`https://www.911.gov/`). Firemaps n'invente aucun numéro pour un pays absent
+  du référentiel.
+- Détection : `@rapideditor/country-coder` associe localement les coordonnées
+  WGS84 du point choisi (ou du centre de carte) à un code ISO 3166-1. Les
+  coordonnées ne sont pas transmises à un géocodeur tiers pour cette fonction.
+- Sécurité : le pays détecté reste visible et corrigeable, et un second geste
+  est requis avant d'ouvrir un lien `tel:`. Aucun appel automatique.
+- Extension mondiale prévue : intégrer progressivement les entrées vérifiées de
+  la base E.129 de l'UIT, avec source et date de vérification par pays.
 
 ## Open-Meteo / Météo-France — vent modélisé
 
@@ -102,17 +104,29 @@ Aucune source officielle de confirmation, consigne ou périmètre opérationnel 
 
 Ces liens améliorent l’accès aux informations compétentes sans transformer une page web en faux flux structuré. L’absence de publication visible ne prouve pas l’absence de danger.
 
-## IGN Géoplateforme — autocomplétion connectée
+## Photon / OpenStreetMap — autocomplétion mondiale
+
+- Fournisseur principal : Photon, moteur d'autocomplétion mondial basé sur OpenStreetMap.
+- Endpoint amont : `https://photon.komoot.io/api/`.
+- Usage : villes, adresses et points d'intérêt dans le monde, six suggestions maximum après trois caractères.
+- Langue : l'en-tête `Accept-Language` du navigateur est transmis au fournisseur.
+- Résilience : debounce client de 350 ms, timeout serveur de 5 s et IGN Géoplateforme utilisé comme secours lorsque Photon échoue ou ne retourne aucun résultat.
+- Vie privée : le texte recherché transite par Firemaps puis par Photon, ou par IGN en secours. Il n'est pas persisté par l'application mais peut figurer dans les journaux techniques des opérateurs.
+- Limites : le service public Photon est adapté à un usage raisonnable ; une forte audience exigera un service géré ou une instance dédiée. La qualité dépend des données OpenStreetMap.
+
+Implémentation : `src/integrations/photon.ts`, `src/integrations/geoplateforme.ts`, route `/api/geocoding/autocomplete` et `src/components/map-search.tsx`.
+
+## IGN Géoplateforme — secours français
 
 - Fournisseur : IGN, service national Géoplateforme alimenté par la BAN, BD TOPO et Parcellaire Express.
 - Endpoint amont : `https://data.geopf.fr/geocodage/completion/`.
-- Usage : adresses et points d’intérêt en métropole, six suggestions maximum après trois caractères.
+- Usage : adresses et points d'intérêt en métropole, uniquement comme repli de la recherche mondiale.
 - Fréquence : la documentation BAN annonce une actualisation du moteur deux fois par semaine.
 - Quota public : 10 requêtes par seconde et par IP pour l’autocomplétion.
 - Précision : coordonnées du localisant retourné ; elles ne constituent pas une position de l’utilisateur.
-- Résilience : debounce client de 350 ms, timeout serveur de 5 s, erreur visible, aucune mise en cache.
+- Résilience : timeout serveur de 5 s, erreur visible si Photon et IGN échouent, aucune mise en cache applicative des termes recherchés.
 - Vie privée : texte recherché transmis à Firemaps puis à l’IGN, sans persistance applicative. Les réponses et la sélection restent en mémoire.
-- Limites : couverture actuelle forcée à `METROPOLE`; l’outre-mer sera ajouté avec un choix de territoire. La disponibilité n’est pas garantie.
+- Limites : couverture forcée à `METROPOLE`; cette restriction ne limite plus la recherche globale puisque Photon est interrogé en premier.
 
 Implémentation : `src/integrations/geoplateforme.ts`, route `/api/geocoding/autocomplete` et `src/components/map-search.tsx`.
 

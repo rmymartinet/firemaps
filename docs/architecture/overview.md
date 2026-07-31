@@ -8,11 +8,13 @@ NASA FIRMS → `src/integrations/firms.ts` → route serveur `/api/incidents/fir
 
 La clé FIRMS reste exclusivement côté serveur. Les trois capteurs sont
 interrogés indépendamment ; la route peut rendre un résultat partiel. Une
-réponse réussie est cachée cinq minutes par le CDN avec dix minutes de
+réponse réussie est cachée cinq minutes par le CDN avec trente minutes de
 `stale-while-revalidate`. La dernière réponse réussie disponible dans
-l’instance serveur peut être rendue comme secours. Côté client, les erreurs
+l'instance serveur peut être rendue comme secours. Côté client, les erreurs
 initiales déclenchent des reprises espacées ; une reconnexion ou le retour au
-premier plan relance également FIRMS lorsque la carte est en erreur.
+premier plan relance également FIRMS lorsque la carte est en erreur. L'emprise
+est mondiale, les vues presque globales demandent un zoom supplémentaire et la
+période FIRMS est limitée à cinq jours conformément à l'API fournisseur.
 
 ## Carte
 
@@ -25,7 +27,11 @@ regroupements thermiques par inclusion spatiale. Si le WFS ne répond pas, la
 couche raster WMS `modis.ba.poly.week` prend automatiquement le relais. Une
 zone rouge reste une estimation consolidée, non une confirmation.
 
-La recherche cartographique utilise `/api/geocoding/autocomplete`, qui valide la requête puis appelle l’autocomplétion IGN Géoplateforme. Le navigateur ne contacte pas directement le fournisseur. Les résultats normalisés recentrent Leaflet et restent uniquement en mémoire.
+La recherche cartographique utilise `/api/geocoding/autocomplete`, qui valide
+la requête puis appelle Photon/OpenStreetMap pour une couverture mondiale. IGN
+Géoplateforme reste un secours métropolitain. Le navigateur ne contacte pas
+directement les fournisseurs. Les résultats normalisés recentrent Leaflet et
+restent uniquement en mémoire.
 
 Le vent est chargé via `/api/weather/wind` pour alimenter les fiches de zone ;
 le bouton Vent contrôle seulement les flèches. L’adaptateur Open-Meteo
@@ -33,10 +39,10 @@ interroge les modèles Météo-France sur une grille fixe de 20 points. Leaflet
 interpole les quatre vecteurs les plus proches. Le vent ne contribue jamais au
 score confirmant l’existence d’un feu.
 
-Sentinel-2 est appelé à la demande depuis une fiche de zone. Le catalogue
-cherche une image claire avant et après l’événement avec une marge de six
-heures. Le rendu dNBR masque nuages, ombres et pixels invalides ; sans paire
-valide, aucun résultat n’est montré. MTG-FRP reste expérimental et non exposé.
+Les routes expérimentales Sentinel-2 et MTG-FRP restent temporairement dans le
+dépôt pour historique technique, mais leurs couches ont été retirées de
+l'interface : leur temporalité et leur interprétation étaient trop ambiguës
+pour la lecture immédiate recherchée.
 
 ## Informations officielles et contexte
 
@@ -76,9 +82,16 @@ analyse optique et contexte météo restent des dimensions séparées.
 
 ## Domaine et persistance
 
-`src/domain` contient les modèles, la fraîcheur, le calcul de distance et le regroupement, indépendamment de l’interface. Il n’existe actuellement ni base, ni authentification, ni persistance distante. Supabase reste prévu pour les observations, la modération et les informations officielles.
+`src/domain` contient les modèles, la fraîcheur, le calcul de distance et le
+regroupement, indépendamment de l'interface. PostgreSQL Neon est accédé avec
+Prisma. Better Auth gère les utilisateurs, comptes, sessions et vérifications.
+Les signalements, géométries, médias et votes sont persistés côté serveur ; les
+fichiers sont envoyés vers Cloudflare R2 au moyen d'URL signées courtes.
 
-Le prototype communautaire conserve jusqu’à 100 fiches dans `localStorage` et les blobs photo/vidéo dans IndexedDB, avec catégorie, position, précision annoncée, heure observée, média local ou URL vidéo, compteurs de votes et expiration. La position peut venir de l’appareil, d’une adresse IGN ou d’un point choisi sur la carte. Un vote par signalement et par navigateur est mémorisé localement. Trois confirmations avec au moins 67 % d’avis favorables produisent le libellé « soutenu par la communauté » ; deux contestations majoritaires produisent « contesté ». Ces statuts sont uniquement communautaires. Aucun contenu n’est synchronisé entre appareils avant le backend Supabase.
+Les lectures communautaires partagent un cache Next/Vercel de 20 secondes,
+invalidé après une création, une modification, un vote ou une suppression. Un
+flux SSE de diffusion des changements est en cours de développement et n'est
+pas encore considéré comme une fonctionnalité livrée.
 
 La découverte vidéo passe par `/api/videos/discover`. La route valide un nom de lieu, construit deux requêtes limitées aux domaines TikTok et Instagram, puis appelle Brave Search avec une clé exclusivement serveur. L’adaptateur filtre les autres domaines et déduplique les URL. L’outil ne scrape pas les plateformes, ne télécharge aucun média et ne publie aucun résultat sans action humaine.
 
