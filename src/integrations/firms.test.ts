@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { normalizeFirmsRows, parseFirmsCsv, serializeFirmsArea } from "./firms";
+import {
+  normalizeFirmsDayRange,
+  normalizeFirmsRows,
+  parseFirmsCsv,
+  serializeFirmsArea,
+} from "./firms";
 
 const csv = `latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight
 43.1234,5.4567,340.2,0.4,0.4,2026-07-25,0942,N20,VIIRS,h,2.0NRT,295.1,12.4,D`;
@@ -38,5 +43,11 @@ describe("NASA FIRMS", () => {
       south: -34.12542,
       west: 150.87654,
     })).toBe("150.8765,-34.1254,151.2153,-33.8567");
+  });
+
+  it("respecte la plage maximale de 5 jours acceptée par FIRMS", () => {
+    expect(normalizeFirmsDayRange(8)).toBe(5);
+    expect(normalizeFirmsDayRange(0)).toBe(1);
+    expect(normalizeFirmsDayRange(3.6)).toBe(4);
   });
 });

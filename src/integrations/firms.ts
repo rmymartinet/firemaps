@@ -22,6 +22,10 @@ export interface FirmsArea {
   west: number;
 }
 
+export function normalizeFirmsDayRange(dayRange: number): number {
+  return Math.min(5, Math.max(1, Math.round(dayRange)));
+}
+
 export function serializeFirmsArea(area: FirmsArea): string {
   return [area.west, area.south, area.east, area.north]
     .map((coordinate) => Number(coordinate.toFixed(4)))
@@ -118,7 +122,7 @@ export function normalizeFirmsRows(rows: FirmsRow[], source: FirmsSource, ingest
 export async function fetchFirmsForArea(mapKey: string, area: FirmsArea, dayRange = 1): Promise<FirmsResult> {
   const fetchedAt = new Date().toISOString();
   const serializedArea = serializeFirmsArea(area);
-  const safeDayRange = Math.min(10, Math.max(1, Math.round(dayRange)));
+  const safeDayRange = normalizeFirmsDayRange(dayRange);
   const results = await Promise.allSettled(
     FIRMS_SOURCES.map(async (source) => {
       const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${encodeURIComponent(mapKey)}/${source}/${serializedArea}/${safeDayRange}`;
@@ -140,6 +144,10 @@ export async function fetchFirmsForArea(mapKey: string, area: FirmsArea, dayRang
       incidents.push(...result.value.incidents);
     } else {
       failedSources.push(source);
+      console.warn("[FIRMS] Satellite source unavailable", {
+        source,
+        reason: result.reason instanceof Error ? result.reason.message : "Unknown error",
+      });
     }
   });
   return { incidents, fetchedAt, successfulSources, failedSources };

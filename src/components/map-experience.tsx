@@ -727,7 +727,7 @@ export function MapExperience() {
     slowNoticeTimeout = window.setTimeout(() => setMapLoadNotice({ kind: "slow" }), 4_000);
     async function loadIncidents() {
       try {
-        const requestedDays = Math.min(8, mapPreferences.timelineRangeDays + 1);
+        const requestedDays = Math.min(5, mapPreferences.timelineRangeDays + 1);
         const firmsArea = {
           east: Math.min(180, Math.ceil(mapView.east)),
           north: Math.min(90, Math.ceil(mapView.north)),
@@ -742,7 +742,7 @@ export function MapExperience() {
           west: String(firmsArea.west),
           zoom: mapView.zoom.toFixed(2),
         });
-        const response = await fetch(`/api/incidents/firms?${parameters}`, { cache: "no-store", signal: controller.signal });
+        const response = await fetch(`/api/incidents/firms?${parameters}`, { signal: controller.signal });
         const payload = await response.json() as {
           failedSources: string[];
           fetchedAt: string;

@@ -1,4 +1,10 @@
-import { fetchFirmsForArea, serializeFirmsArea, type FirmsArea, type FirmsResult } from "@/integrations/firms";
+import {
+  fetchFirmsForArea,
+  normalizeFirmsDayRange,
+  serializeFirmsArea,
+  type FirmsArea,
+  type FirmsResult,
+} from "@/integrations/firms";
 
 export const runtime = "nodejs";
 
@@ -50,7 +56,7 @@ export async function GET(request: Request) {
   try {
     const parameters = new URL(request.url).searchParams;
     const requestedDays = Number(parameters.get("days") ?? 1);
-    const dayRange = Number.isFinite(requestedDays) ? Math.min(8, Math.max(1, Math.round(requestedDays))) : 1;
+    const dayRange = Number.isFinite(requestedDays) ? normalizeFirmsDayRange(requestedDays) : 1;
     const zoom = Number(parameters.get("zoom"));
     if (Number.isFinite(zoom) && zoom <= 3) {
       return Response.json({
@@ -85,7 +91,7 @@ export async function GET(request: Request) {
       status,
       headers: {
         "Cache-Control": status === 200
-          ? "public, s-maxage=300, stale-while-revalidate=600"
+          ? "public, s-maxage=300, stale-while-revalidate=1800"
           : "no-store",
         ...(fallback ? { "X-Firemaps-Fallback": "stale-firms" } : {}),
       },
