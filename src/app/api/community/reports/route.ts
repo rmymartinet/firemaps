@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import { Prisma } from "@/generated/prisma/client";
 import { distanceKm } from "@/domain/distance";
 import {
@@ -14,6 +13,7 @@ import { requireVerifiedEmail } from "@/server/require-verified-email";
 import { getCachedCommunityReports, invalidateCommunityReports } from "@/server/community-report-cache";
 import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
+import { requestIpHash } from "@/server/request-ip-hash";
 import { verifyR2Object } from "@/server/r2";
 import { publishReportEvent } from "@/server/realtime/report-cross-instance-relay";
 
@@ -47,14 +47,6 @@ class ReportProtectionError extends Error {
   ) {
     super(message);
   }
-}
-
-function requestIpHash(request: Request): string | null {
-  const rawIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")?.trim();
-  const secret = process.env.COMMUNITY_RATE_LIMIT_SECRET || process.env.BETTER_AUTH_SECRET;
-  if (!rawIp || !secret) return null;
-  return createHmac("sha256", secret).update(rawIp).digest("hex");
 }
 
 type ReportInput = {

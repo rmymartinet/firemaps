@@ -3,6 +3,7 @@ import { requireVerifiedEmail } from "@/server/require-verified-email";
 import { invalidateCommunityReports } from "@/server/community-report-cache";
 import { prisma } from "@/server/prisma";
 import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
+import { requestIpHash } from "@/server/request-ip-hash";
 import { publishReportEvent } from "@/server/realtime/report-cross-instance-relay";
 
 export async function POST(request: Request, context: RouteContext<"/api/community/reports/[id]/vote">) {
@@ -17,14 +18,18 @@ export async function POST(request: Request, context: RouteContext<"/api/communi
   if (body?.value !== 1 && body?.value !== -1) return Response.json({ message: "Vote invalide." }, { status: 400 });
 
   const report = await prisma.communityReport.findFirst({
-    select: { id: true },
+    select: { id: true, reporterId: true },
     where: { id, expiresAt: { gt: new Date() }, moderationStatus: { in: ["PENDING", "PUBLISHED"] } },
   });
   if (!report) return Response.json({ message: "Signalement introuvable ou expiré." }, { status: 404 });
+  if (report.reporterId === session.user.id) {
+    return Response.json({ message: "Vous ne pouvez pas voter sur votre propre signalement." }, { status: 403 });
+  }
 
+  const voterIpHash = requestIpHash(request);
   await prisma.communityVote.upsert({
-    create: { reportId: id, value: body.value, voterId: session.user.id },
-    update: { value: body.value },
+    create: { reportId: id, value: body.value, voterId: session.user.id, voterIpHash },
+    update: { value: body.value, voterIpHash },
     where: { reportId_voterId: { reportId: id, voterId: session.user.id } },
   });
 

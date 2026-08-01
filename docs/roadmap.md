@@ -111,8 +111,12 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
    signalements publiés, votes reçus, rejets de modération), sans migration
    de schéma. Affiché uniquement au titulaire du compte, avec le détail des
    raisons ; aucun classement public entre utilisateurs.
-6. Détecter les votes coordonnés et interdire le vote sur sa propre
-   contribution.
+6. Partiel : interdiction de voter sur sa propre contribution (403 explicite),
+   et capture d'un hash IP par vote (migration `add_vote_ip_hash`,
+   `CommunityVote.voterIpHash`) comme base pour une future corrélation.
+   Restant : la détection elle-même (heuristique ou analyse de graphe des
+   votes partageant une IP dans une fenêtre de temps courte) n'est pas encore
+   implémentée.
 7. Ajouter une file de modération, un journal d'audit et des actions de
    suspension, regroupement et masquage.
 
