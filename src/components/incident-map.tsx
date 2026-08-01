@@ -301,15 +301,27 @@ function DetectionLayers({
     north: initialBounds.getNorth(),
     east: initialBounds.getEast(),
   });
+  const visibleBoundsTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => {
+    if (visibleBoundsTimerRef.current) clearTimeout(visibleBoundsTimerRef.current);
+  }, []);
   useMapEvents({
     moveend: (event) => {
-      const bounds = event.target.getBounds().pad(0.25);
-      setVisibleBounds({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
+      if (visibleBoundsTimerRef.current) clearTimeout(visibleBoundsTimerRef.current);
+      const targetMap = event.target;
+      visibleBoundsTimerRef.current = setTimeout(() => {
+        const bounds = targetMap.getBounds().pad(0.25);
+        setVisibleBounds({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
+      }, 200);
     },
     zoomend: (event) => {
-      setZoom(event.target.getZoom());
-      const bounds = event.target.getBounds().pad(0.25);
-      setVisibleBounds({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
+      if (visibleBoundsTimerRef.current) clearTimeout(visibleBoundsTimerRef.current);
+      const targetMap = event.target;
+      visibleBoundsTimerRef.current = setTimeout(() => {
+        setZoom(targetMap.getZoom());
+        const bounds = targetMap.getBounds().pad(0.25);
+        setVisibleBounds({ south: bounds.getSouth(), west: bounds.getWest(), north: bounds.getNorth(), east: bounds.getEast() });
+      }, 200);
     },
   });
   const radiusKm = zoom >= 12 ? 0 : (clusterRadiusByZoom[zoom] ?? 150);

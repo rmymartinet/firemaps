@@ -132,8 +132,14 @@ Source : [`product/user-feedback-2026-07.md`](product/user-feedback-2026-07.md).
 
 Ordre P0 retenu :
 
-1. Mesurer puis optimiser zoom, déplacement, clustering et rendu des halos sur
-   des téléphones modestes avec un jeu de données dense.
+1. Partiel : le recalcul de l'emprise visible (filtrage, clustering, zones) au
+   déplacement/zoom est désormais amorti (`debounce` de 200 ms) au lieu de
+   s'exécuter à chaque `moveend`/`zoomend`. Restant : les halos thermiques
+   restent rendus en SVG (trois `CircleMarker` par cluster avec filtres CSS
+   `blur`/`drop-shadow`) ; un rendu canvas réduirait le coût sur téléphone
+   modeste mais demande de réimplémenter le flou/la lueur en dessin natif, les
+   filtres CSS ne s'appliquant pas aux formes dessinées en canvas. Mesures de
+   performance chiffrées (FPS, temps de recalcul) encore à faire.
 2. Auditer la présence et la compréhension de la source, de la date
    d'observation et de la dernière synchronisation sur chaque type de fiche.
 3. Renforcer la confiance communautaire : e-mail vérifié, score explicable,
