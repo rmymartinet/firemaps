@@ -14,9 +14,9 @@ describe("computeCommunityTrustScore", () => {
 
     expect(result.level).toBe("low");
     expect(result.score).toBe(20);
-    expect(result.reasons).toContain("Adresse e-mail non vérifiée.");
-    expect(result.reasons).toContain("Compte créé aujourd’hui.");
-    expect(result.reasons).toContain("Aucun signalement publié pour l’instant.");
+    expect(result.reasons).toContainEqual({ code: "email-not-verified" });
+    expect(result.reasons).toContainEqual({ code: "account-age-today" });
+    expect(result.reasons).toContainEqual({ code: "reports-none" });
   });
 
   it("attribue un score élevé à un compte ancien, vérifié et bien noté", () => {
@@ -31,7 +31,7 @@ describe("computeCommunityTrustScore", () => {
 
     expect(result.level).toBe("high");
     expect(result.score).toBe(100);
-    expect(result.reasons).toContain("Adresse e-mail vérifiée.");
+    expect(result.reasons).toContainEqual({ code: "email-verified" });
   });
 
   it("pénalise les signalements rejetés ou masqués sans jamais descendre sous zéro", () => {
@@ -46,7 +46,7 @@ describe("computeCommunityTrustScore", () => {
 
     expect(result.score).toBe(0);
     expect(result.level).toBe("low");
-    expect(result.reasons).toContain("10 signalements rejetés ou masqués par la modération.");
+    expect(result.reasons).toContainEqual({ code: "moderation-penalty", count: 10 });
   });
 
   it("plafonne le score à 100 même avec un historique exceptionnel", () => {
@@ -80,7 +80,7 @@ describe("computeCommunityTrustScore", () => {
       totalDisputes: 3,
     });
 
-    expect(noVotes.reasons).toContain("Pas encore de votes reçus.");
-    expect(neutralVotes.reasons).toContain("Bilan des votes reçus neutre.");
+    expect(noVotes.reasons).toContainEqual({ code: "votes-none" });
+    expect(neutralVotes.reasons).toContainEqual({ code: "votes-neutral" });
   });
 });

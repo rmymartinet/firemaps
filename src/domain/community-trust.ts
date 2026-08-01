@@ -1,8 +1,21 @@
 export type CommunityTrustLevel = "high" | "medium" | "low";
 
+export type CommunityTrustReason =
+  | { code: "email-verified" }
+  | { code: "email-not-verified" }
+  | { code: "account-age-today" }
+  | { code: "account-age-days"; days: number }
+  | { code: "reports-none" }
+  | { code: "reports-published"; count: number }
+  | { code: "votes-none" }
+  | { code: "votes-positive"; net: number }
+  | { code: "votes-negative"; net: number }
+  | { code: "votes-neutral" }
+  | { code: "moderation-penalty"; count: number };
+
 export interface CommunityTrustScore {
   level: CommunityTrustLevel;
-  reasons: string[];
+  reasons: CommunityTrustReason[];
   score: number;
 }
 
@@ -30,48 +43,50 @@ const MODERATION_PENALTY_PER_REPORT = 5;
  * Score de confiance communautaire explicable, calculé uniquement à partir de
  * données déjà persistées (aucune migration de schéma requise). Réservé à un
  * affichage privé pour le compte concerné : jamais de classement public entre
- * utilisateurs.
+ * utilisateurs. Les raisons sont des codes structurés, à traduire côté
+ * interface selon la langue choisie par l'utilisateur — jamais de texte en
+ * dur ici.
  */
 export function computeCommunityTrustScore(input: CommunityTrustInput): CommunityTrustScore {
-  const reasons: string[] = [];
+  const reasons: CommunityTrustReason[] = [];
   let score = BASE_SCORE;
 
   if (input.emailVerified) {
     score += EMAIL_VERIFIED_BONUS;
-    reasons.push("Adresse e-mail vérifiée.");
+    reasons.push({ code: "email-verified" });
   } else {
-    reasons.push("Adresse e-mail non vérifiée.");
+    reasons.push({ code: "email-not-verified" });
   }
 
   const ageBonus = Math.min(MAX_AGE_BONUS, Math.floor(input.accountAgeDays / AGE_BONUS_DAYS_DIVISOR));
   score += ageBonus;
   reasons.push(input.accountAgeDays < 1
-    ? "Compte créé aujourd’hui."
-    : `Compte créé depuis ${input.accountAgeDays} jour${input.accountAgeDays > 1 ? "s" : ""}.`);
+    ? { code: "account-age-today" }
+    : { code: "account-age-days", days: input.accountAgeDays });
 
   const reportsBonus = Math.min(MAX_REPORTS_BONUS, input.publishedReports * REPORTS_BONUS_PER_REPORT);
   score += reportsBonus;
   reasons.push(input.publishedReports > 0
-    ? `${input.publishedReports} signalement${input.publishedReports > 1 ? "s" : ""} publié${input.publishedReports > 1 ? "s" : ""}.`
-    : "Aucun signalement publié pour l’instant.");
+    ? { code: "reports-published", count: input.publishedReports }
+    : { code: "reports-none" });
 
   const netVotes = input.totalConfirms - input.totalDisputes;
   const voteBonus = Math.max(-MAX_VOTE_BONUS, Math.min(MAX_VOTE_BONUS, netVotes * VOTE_BONUS_MULTIPLIER));
   score += voteBonus;
   if (input.totalConfirms + input.totalDisputes === 0) {
-    reasons.push("Pas encore de votes reçus.");
+    reasons.push({ code: "votes-none" });
   } else if (netVotes > 0) {
-    reasons.push(`Bilan des votes reçus positif (+${netVotes}).`);
+    reasons.push({ code: "votes-positive", net: netVotes });
   } else if (netVotes < 0) {
-    reasons.push(`Bilan des votes reçus négatif (${netVotes}).`);
+    reasons.push({ code: "votes-negative", net: netVotes });
   } else {
-    reasons.push("Bilan des votes reçus neutre.");
+    reasons.push({ code: "votes-neutral" });
   }
 
   if (input.rejectedOrHiddenReports > 0) {
     const penalty = Math.min(MAX_MODERATION_PENALTY, input.rejectedOrHiddenReports * MODERATION_PENALTY_PER_REPORT);
     score -= penalty;
-    reasons.push(`${input.rejectedOrHiddenReports} signalement${input.rejectedOrHiddenReports > 1 ? "s" : ""} rejeté${input.rejectedOrHiddenReports > 1 ? "s" : ""} ou masqué${input.rejectedOrHiddenReports > 1 ? "s" : ""} par la modération.`);
+    reasons.push({ code: "moderation-penalty", count: input.rejectedOrHiddenReports });
   }
 
   const boundedScore = Math.max(0, Math.min(100, score));

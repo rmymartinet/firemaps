@@ -2,11 +2,30 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
-import type { CommunityTrustScore } from "@/domain/community-trust";
+import type { CommunityTrustReason, CommunityTrustScore } from "@/domain/community-trust";
 import { PasswordResetRequest } from "@/components/password-reset-request";
 import { useLanguage } from "@/i18n/language-context";
 
 type AuthMode = "forgot-password" | "sign-in" | "sign-up";
+
+type Translate = (key: string, values?: Record<string, string | number>) => string;
+
+function trustReasonLabel(reason: CommunityTrustReason, t: Translate): string {
+  switch (reason.code) {
+    case "email-verified": return t("authAccountPanel.trustReasonEmailVerified");
+    case "email-not-verified": return t("authAccountPanel.trustReasonEmailNotVerified");
+    case "account-age-today": return t("authAccountPanel.trustReasonAccountAgeToday");
+    case "account-age-days": return t("authAccountPanel.trustReasonAccountAgeDays", { days: reason.days });
+    case "reports-none": return t("authAccountPanel.trustReasonReportsNone");
+    case "reports-published": return t("authAccountPanel.trustReasonReportsPublished", { count: reason.count });
+    case "votes-none": return t("authAccountPanel.trustReasonVotesNone");
+    case "votes-positive": return t("authAccountPanel.trustReasonVotesPositive", { net: reason.net });
+    case "votes-negative": return t("authAccountPanel.trustReasonVotesNegative", { net: reason.net });
+    case "votes-neutral": return t("authAccountPanel.trustReasonVotesNeutral");
+    case "moderation-penalty": return t("authAccountPanel.trustReasonModerationPenalty", { count: reason.count });
+    default: return "";
+  }
+}
 
 export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => void } = {}) {
   const { t } = useLanguage();
@@ -96,7 +115,7 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
               {t("authAccountPanel.trustScore")} : {trustScore.score}/100
             </summary>
             <ul className="m-0 mt-1.5 list-disc pl-4">
-              {trustScore.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+              {trustScore.reasons.map((reason) => <li key={reason.code}>{trustReasonLabel(reason, t)}</li>)}
             </ul>
           </details>
         )}
