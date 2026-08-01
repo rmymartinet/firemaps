@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { mediaKindFromUrl, type CommunityMediaKind } from "@/domain/community-report";
 import { auth } from "@/server/auth";
+import { requireVerifiedEmail } from "@/server/require-verified-email";
 import { invalidateCommunityReports } from "@/server/community-report-cache";
 import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
@@ -37,6 +38,8 @@ type EnrichmentInput = {
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour modifier ce signalement." }, { status: 401 });
+  const verificationError = requireVerifiedEmail(session);
+  if (verificationError) return verificationError;
   const rateLimit = consumeRateLimit("community-edit", session.user.id, 30, 60_000);
   if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter);
   const { id } = await context.params;

@@ -10,6 +10,7 @@ import {
   type CommunityReport,
 } from "@/domain/community-report";
 import { auth } from "@/server/auth";
+import { requireVerifiedEmail } from "@/server/require-verified-email";
 import { getCachedCommunityReports, invalidateCommunityReports } from "@/server/community-report-cache";
 import { serializeCommunityReport } from "@/server/community-report-dto";
 import { prisma } from "@/server/prisma";
@@ -93,6 +94,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour publier un signalement." }, { status: 401 });
+  const verificationError = requireVerifiedEmail(session);
+  if (verificationError) return verificationError;
   const body = await request.json().catch(() => null) as ReportInput | null;
   if (!body?.category || !(body.category in categoryMap)) return Response.json({ message: "Catégorie invalide." }, { status: 400 });
   const category = body.category;

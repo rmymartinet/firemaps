@@ -101,7 +101,11 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
 2. ✅ Bloquer les doublons rapprochés d’un même auteur et regrouper visuellement
    les témoignages ponctuels proches de personnes différentes.
 3. ✅ Appliquer une expiration courte adaptée à chaque catégorie.
-4. Exiger la vérification de l’adresse e-mail avant la première contribution.
+4. ✅ Exiger la vérification de l’adresse e-mail avant la première
+   contribution : Better Auth envoie un e-mail de vérification (Resend) à
+   l'inscription, et la création, la modification et le vote sur un
+   signalement sont refusés (403) tant que l'e-mail n'est pas confirmé. La
+   suppression de ses propres contributions reste autorisée sans vérification.
 5. Construire un score de confiance progressif sans afficher de classement
    public des utilisateurs.
 6. Détecter les votes coordonnés et interdire le vote sur sa propre

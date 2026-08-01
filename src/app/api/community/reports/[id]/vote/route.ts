@@ -1,4 +1,5 @@
 import { auth } from "@/server/auth";
+import { requireVerifiedEmail } from "@/server/require-verified-email";
 import { invalidateCommunityReports } from "@/server/community-report-cache";
 import { prisma } from "@/server/prisma";
 import { consumeRateLimit, rateLimitResponse } from "@/server/rate-limit";
@@ -7,6 +8,8 @@ import { publishReportEvent } from "@/server/realtime/report-cross-instance-rela
 export async function POST(request: Request, context: RouteContext<"/api/community/reports/[id]/vote">) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user) return Response.json({ message: "Connectez-vous pour voter." }, { status: 401 });
+  const verificationError = requireVerifiedEmail(session);
+  if (verificationError) return verificationError;
   const rateLimit = consumeRateLimit("community-vote", session.user.id, 60, 60_000);
   if (!rateLimit.allowed) return rateLimitResponse(rateLimit.retryAfter);
   const { id } = await context.params;
