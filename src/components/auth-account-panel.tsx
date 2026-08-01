@@ -13,6 +13,14 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationEmailStatus, setVerificationEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const resendVerificationEmail = async () => {
+    if (!session?.user) return;
+    setVerificationEmailStatus("sending");
+    const result = await authClient.sendVerificationEmail({ email: session.user.email });
+    setVerificationEmailStatus(result.error ? "error" : "sent");
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,6 +52,26 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
           <strong className="block text-sm">{session.user.name}</strong>
           <small className="text-muted">{session.user.email}</small>
         </div>
+        {!session.user.emailVerified && (
+          <div className="grid gap-1.5 rounded-[10px_7px_12px_8px] border-[1.5px] border-[#9f291e] bg-[#9f291e]/5 p-3">
+            <p className="m-0 text-xs font-bold text-[#9f291e]">{t("authAccountPanel.emailNotVerified")}</p>
+            <button
+              className="justify-self-start border-0 bg-transparent p-0 text-xs font-extrabold text-[#195e70] underline decoration-dashed underline-offset-4 disabled:opacity-60"
+              disabled={verificationEmailStatus === "sending" || verificationEmailStatus === "sent"}
+              onClick={resendVerificationEmail}
+              type="button"
+            >
+              {verificationEmailStatus === "sending"
+                ? t("authAccountPanel.pleaseWait")
+                : verificationEmailStatus === "sent"
+                  ? t("authAccountPanel.verificationEmailSent")
+                  : t("authAccountPanel.resendVerificationEmail")}
+            </button>
+            {verificationEmailStatus === "error" && (
+              <p className="m-0 text-xs font-bold text-[#9f291e]">{t("authAccountPanel.verificationEmailFailed")}</p>
+            )}
+          </div>
+        )}
         <button
           className="min-h-10 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm font-extrabold"
           onClick={() => authClient.signOut()}
