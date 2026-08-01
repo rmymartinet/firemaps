@@ -305,6 +305,7 @@ function DetectionLayers({
   useEffect(() => () => {
     if (visibleBoundsTimerRef.current) clearTimeout(visibleBoundsTimerRef.current);
   }, []);
+  
   useMapEvents({
     moveend: (event) => {
       if (visibleBoundsTimerRef.current) clearTimeout(visibleBoundsTimerRef.current);
@@ -464,6 +465,7 @@ function DetectionLayers({
             <Popup>
               <div className="popup-title">🔥 {t("incidentMap.observedThermalActivity")}</div>
               <p><strong>{zone.incidents.length} {t("incidentMap.signals")} · {t("incidentMap.latestDetection")} {formatAge(summary.latestObservedAt, new Date(), ageLanguage)}</strong></p>
+              <small>{t("incidentMap.source")}: <a href={zone.incidents[0].sourceUrl} rel="noreferrer" target="_blank">{zone.incidents[0].sourceName}</a></small>
               <p>{t("incidentMap.satelliteTrend")}: {language === "fr" ? activityTrendLabels[summary.trend] : language === "es" ? activityTrendLabelsSpanish[summary.trend] : language === "it" ? activityTrendLabelsEnglish[summary.trend] : language === "de" ? activityTrendLabelsEnglish[summary.trend] : language === "pt" ? activityTrendLabelsEnglish[summary.trend] : language === "nl" ? activityTrendLabelsEnglish[summary.trend] : activityTrendLabelsEnglish[summary.trend]} · {t("incidentMap.combinedConfidence2")} {eventConfidence.score}/100.</p>
               {summary.radiativePowerMw !== null && <p>{t("incidentMap.observedThermalIntensity")}: {Math.round(summary.radiativePowerMw)} MW.</p>}
               {movement && movement.distanceKm >= 0.3 ? (
@@ -550,6 +552,7 @@ function DetectionLayers({
                 <div className="popup-title">{cluster.incidents.length} {t("incidentMap.clusteredSatelliteDetections")}</div>
                 <p>{t("incidentMap.visualGroupingCalculatedAtThisZoomLevelNot")}</p>
                 <p>{t("incidentMap.mostRecentDetection")}: {formatAge(newest.observedAt, new Date(), ageLanguage)}</p>
+                <small>{t("incidentMap.source")}: <a href={newest.sourceUrl} rel="noreferrer" target="_blank">{newest.sourceName}</a></small>
                 <button className="secondary" onClick={() => map.flyTo([cluster.latitude, cluster.longitude], Math.min(11, zoom + 2))}>{t("incidentMap.viewDetections")}</button>
               </Popup>
             </Marker>
@@ -754,6 +757,7 @@ function CommunityReportsLayer({
   onDelete: (reportId: string) => void;
 }) {
   const { language, t } = useLanguage();
+  const ageLanguage: "en" | "fr" = language === "fr" ? "fr" : "en";
   return reports
     .filter((report) => communityReportStatus(report) !== "expired")
     .map((report) => {
@@ -825,7 +829,10 @@ function CommunityReportsLayer({
               <small className="map-data-kind map-data-kind-community">{t("incidentMap.communityReport")}</small>
               <span className={`community-status community-status-${status}`}>{language === "fr" ? communityStatusLabels[status] : language === "es" ? communityStatusLabelsEnglish[status] : language === "it" ? communityStatusLabelsEnglish[status] : language === "de" ? communityStatusLabelsEnglish[status] : language === "pt" ? communityStatusLabelsEnglish[status] : language === "nl" ? communityStatusLabelsEnglish[status] : communityStatusLabelsEnglish[status]}</span>
               <div className="popup-title">{language === "fr" ? communityCategoryLabels[report.category] : language === "es" ? communityCategoryLabelsEnglish[report.category] : language === "it" ? communityCategoryLabelsEnglish[report.category] : language === "de" ? communityCategoryLabelsEnglish[report.category] : language === "pt" ? communityCategoryLabelsEnglish[report.category] : language === "nl" ? communityCategoryLabelsEnglish[report.category] : communityCategoryLabelsEnglish[report.category]}</div>
-              <p>{t("incidentMap.communityObservationFrom")} {new Date(report.capturedAt).toLocaleString(language === "fr" ? "fr-FR" : language === "es" ? "es-ES" : language === "it" ? "it-IT" : language === "de" ? "de-DE" : language === "pt" ? "pt-PT" : language === "nl" ? "nl-NL" : "en-GB", { dateStyle: "short", timeStyle: "short" })}</p>
+              <p>
+                {t("incidentMap.communityObservationFrom")} {new Date(report.capturedAt).toLocaleString(language === "fr" ? "fr-FR" : language === "es" ? "es-ES" : language === "it" ? "it-IT" : language === "de" ? "de-DE" : language === "pt" ? "pt-PT" : language === "nl" ? "nl-NL" : "en-GB", { dateStyle: "short", timeStyle: "short" })}
+                {" "}({formatAge(report.capturedAt, new Date(), ageLanguage)})
+              </p>
               {report.reportCount && report.reportCount > 1 && (
                 <p><strong>{t("incidentMap.nearbyReportsGrouped", { count: report.reportCount })}</strong></p>
               )}
@@ -1765,7 +1772,8 @@ function AirQualityGridLayer() {
 }
 
 function OfficialNoticesLayer({ notices }: { notices: OfficialNotice[] }) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const ageLanguage: "en" | "fr" = language === "fr" ? "fr" : "en";
   return notices.map((notice) => {
     const icon = divIcon({
       className: `official-notice-marker ${notice.severity}`,
@@ -1783,6 +1791,11 @@ function OfficialNoticesLayer({ notices }: { notices: OfficialNotice[] }) {
             {notice.instructions.length > 0 && (
               <ul>{notice.instructions.map((instruction) => <li key={instruction}>{instruction}</li>)}</ul>
             )}
+            <p className="official-notice-freshness">
+              {t("incidentMap.published")} {formatAge(notice.publishedAt, new Date(), ageLanguage)}
+              {" · "}
+              {t("incidentMap.lastVerified")} {formatAge(notice.verifiedAt, new Date(), ageLanguage)}
+            </p>
             <a href={notice.sourceUrl} rel="noreferrer" target="_blank">Source : {notice.sourceName}</a>
           </article>
         </Popup>

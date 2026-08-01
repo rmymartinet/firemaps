@@ -189,6 +189,7 @@ a { color: inherit; }
 .official-notice > span { color: var(--muted); font-size: .7rem; font-weight: 800; text-transform: uppercase; }
 .official-notice p, .official-notice ul { font-size: .78rem; line-height: 1.35; margin: 0; }
 .official-notice ul { padding-left: 18px; }
+.official-notice-freshness { color: var(--muted); font-size: .7rem !important; }
 .official-notice a { color: #174f72; font-size: .75rem; font-weight: 800; }
 .official-notice-marker { align-items: center; background: #fffcef; border: 3px solid #347a76; border-radius: 48% 52%; box-shadow: 2px 2px 0 rgba(23,35,34,.24); color: #172322; display: flex; font-weight: 950; height: 30px; justify-content: center; width: 30px; }
 .official-notice-marker.warning { border-color: #d47a12; }

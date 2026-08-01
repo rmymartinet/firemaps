@@ -177,6 +177,8 @@
     "unavailable": "no disponible",
     "camsEstimateGrid11Km": "Estimación CAMS · malla ≈ 11 km",
     "officialInformation": "Información oficial",
+    "published": "Publicado",
+    "lastVerified": "Última verificación",
     "signalsComparison": "{recent} señales en 3 h, frente a {previous} durante las 3 h anteriores.",
     "nearbyObservationsMerged": "Se fusionaron {count} observaciones cercanas.",
     "nearbyReportsGrouped": "Se agruparon {count} testimonios cercanos en este punto.",

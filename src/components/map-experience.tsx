@@ -2198,6 +2198,11 @@ export function MapExperience() {
                 {notice.instructions.length > 0 && (
                   <ul>{notice.instructions.map((instruction) => <li key={instruction}>{instruction}</li>)}</ul>
                 )}
+                <p className="official-notice-freshness">
+                  {t("incidentMap.published")} {formatAge(notice.publishedAt, new Date(), locale === "fr-FR" ? "fr" : "en")}
+                  {" · "}
+                  {t("incidentMap.lastVerified")} {formatAge(notice.verifiedAt, new Date(), locale === "fr-FR" ? "fr" : "en")}
+                </p>
                 <a href={notice.sourceUrl} rel="noreferrer" target="_blank">
                   {t("mapExperience.verifyWith")} {notice.sourceName}
                 </a>

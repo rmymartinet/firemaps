@@ -177,6 +177,8 @@
     "unavailable": "nicht verfügbar",
     "camsEstimateGrid11Km": "CAMS-Schätzung · Raster ≈ 11 km",
     "officialInformation": "Offizielle Information",
+    "published": "Veröffentlicht",
+    "lastVerified": "Zuletzt geprüft",
     "signalsComparison": "{recent} Signale in 3 h, gegenüber {previous} in den vorherigen 3 h.",
     "nearbyObservationsMerged": "{count} nahe Beobachtungen wurden zusammengeführt.",
     "nearbyReportsGrouped": "{count} nahe Meldungen wurden auf diesem Marker gruppiert.",

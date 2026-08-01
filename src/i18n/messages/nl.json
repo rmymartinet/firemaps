@@ -177,6 +177,8 @@
     "unavailable": "unavailable",
     "camsEstimateGrid11Km": "CAMS estimate · grid ≈ 11 km",
     "officialInformation": "Official information",
+    "published": "Gepubliceerd",
+    "lastVerified": "Laatst geverifieerd",
     "signalsComparison": "{recent} signals over 3 hours, versus {previous} during the previous 3 hours.",
     "nearbyObservationsMerged": "{count} nearby observations were merged.",
     "nearbyReportsGrouped": "{count} nearby reports grouped on this marker.",

@@ -140,8 +140,15 @@ Ordre P0 retenu :
    modeste mais demande de réimplémenter le flou/la lueur en dessin natif, les
    filtres CSS ne s'appliquant pas aux formes dessinées en canvas. Mesures de
    performance chiffrées (FPS, temps de recalcul) encore à faire.
-2. Auditer la présence et la compréhension de la source, de la date
-   d'observation et de la dernière synchronisation sur chaque type de fiche.
+2. Partiel : audit réalisé sur toutes les fiches (détection FIRMS, regroupement,
+   zone d'activité, EFFIS, signalement citoyen, consigne officielle, météo des
+   forêts). Corrigé : consignes officielles (date de publication et de dernière
+   vérification affichées, carte et panneau), signalements citoyens (âge
+   relatif ajouté à la date absolue), regroupements et zones d'activité
+   (source FIRMS nommée et liée, jusque-là absente). Restant : la sémantique
+   ambiguë de `lastUpdatedAt` côté EFFIS (observation vs. synchronisation) et
+   la date de publication météo des forêts absente du popup carte (présente
+   seulement dans le panneau latéral).
 3. Renforcer la confiance communautaire : e-mail vérifié, score explicable,
    votes coordonnés, preuve encouragée mais jamais obtenue au prix d'un danger.
 4. Finaliser le mode hors connexion : données enregistrées, âge, expiration,

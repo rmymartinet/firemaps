@@ -177,6 +177,8 @@
     "unavailable": "indisponible",
     "camsEstimateGrid11Km": "Estimation CAMS · maille ≈ 11 km",
     "officialInformation": "Information officielle",
+    "published": "Publié",
+    "lastVerified": "Dernière vérification",
     "signalsComparison": "{recent} signaux sur 3 h, contre {previous} durant les 3 h précédentes.",
     "nearbyObservationsMerged": "{count} observations proches ont été fusionnées.",
     "nearbyReportsGrouped": "{count} témoignages proches regroupés sur ce repère.",
