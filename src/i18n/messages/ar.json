@@ -7,6 +7,7 @@
     "resendVerificationEmail": "إعادة إرسال بريد التحقق",
     "verificationEmailSent": "تم إرسال بريد التحقق",
     "verificationEmailFailed": "فشل الإرسال. أعد المحاولة بعد قليل.",
+    "trustScore": "درجة الثقة",
     "signIn": "تسجيل الدخول",
     "createAccount": "إنشاء حساب",
     "nameOrNickname": "الاسم أو اللقب",

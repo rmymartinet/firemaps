@@ -106,8 +106,11 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
    l'inscription, et la création, la modification et le vote sur un
    signalement sont refusés (403) tant que l'e-mail n'est pas confirmé. La
    suppression de ses propres contributions reste autorisée sans vérification.
-5. Construire un score de confiance progressif sans afficher de classement
-   public des utilisateurs.
+5. ✅ Score de confiance explicable (`src/domain/community-trust.ts`), calculé
+   à partir de données déjà persistées (ancienneté du compte, e-mail vérifié,
+   signalements publiés, votes reçus, rejets de modération), sans migration
+   de schéma. Affiché uniquement au titulaire du compte, avec le détail des
+   raisons ; aucun classement public entre utilisateurs.
 6. Détecter les votes coordonnés et interdire le vote sur sa propre
    contribution.
 7. Ajouter une file de modération, un journal d'audit et des actions de

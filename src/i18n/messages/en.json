@@ -7,6 +7,7 @@
     "resendVerificationEmail": "Resend verification email",
     "verificationEmailSent": "Verification email sent",
     "verificationEmailFailed": "Sending failed. Try again in a moment.",
+    "trustScore": "Trust score",
     "signIn": "Sign in",
     "createAccount": "Create account",
     "nameOrNickname": "Name or nickname",

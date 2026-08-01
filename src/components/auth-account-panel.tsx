@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
+import type { CommunityTrustScore } from "@/domain/community-trust";
 import { PasswordResetRequest } from "@/components/password-reset-request";
 import { useLanguage } from "@/i18n/language-context";
 
@@ -14,6 +15,23 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [verificationEmailStatus, setVerificationEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [trustScore, setTrustScore] = useState<CommunityTrustScore | null>(null);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancelled = false;
+    fetch("/api/community/trust-score", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: CommunityTrustScore | null) => {
+        if (!cancelled) setTrustScore(data);
+      })
+      .catch(() => {
+        if (!cancelled) setTrustScore(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
 
   const resendVerificationEmail = async () => {
     if (!session?.user) return;
@@ -71,6 +89,16 @@ export function AuthAccountPanel({ onAuthenticated }: { onAuthenticated?: () => 
               <p className="m-0 text-xs font-bold text-[#9f291e]">{t("authAccountPanel.verificationEmailFailed")}</p>
             )}
           </div>
+        )}
+        {trustScore && (
+          <details className="rounded-[10px_7px_12px_8px] border-[1.5px] border-[#263532] p-3 text-xs">
+            <summary className="cursor-pointer font-extrabold">
+              {t("authAccountPanel.trustScore")} : {trustScore.score}/100
+            </summary>
+            <ul className="m-0 mt-1.5 list-disc pl-4">
+              {trustScore.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+            </ul>
+          </details>
         )}
         <button
           className="min-h-10 rounded-[9px_6px_11px_7px] border-[1.5px] border-[#263532] bg-transparent px-3 text-sm font-extrabold"

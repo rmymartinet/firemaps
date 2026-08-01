@@ -7,6 +7,7 @@
     "resendVerificationEmail": "Verificatie-e-mail opnieuw versturen",
     "verificationEmailSent": "Verificatie-e-mail verzonden",
     "verificationEmailFailed": "Verzenden mislukt. Probeer het straks opnieuw.",
+    "trustScore": "Vertrouwensscore",
     "signIn": "Inloggen",
     "createAccount": "Account maken",
     "nameOrNickname": "Naam of bijnaam",

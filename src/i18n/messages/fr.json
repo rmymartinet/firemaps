@@ -7,6 +7,7 @@
     "resendVerificationEmail": "Renvoyer l'e-mail de vérification",
     "verificationEmailSent": "E-mail de vérification envoyé",
     "verificationEmailFailed": "Échec de l'envoi. Réessayez dans quelques instants.",
+    "trustScore": "Score de confiance",
     "signIn": "Connexion",
     "createAccount": "Créer un compte",
     "nameOrNickname": "Prénom ou pseudonyme",
