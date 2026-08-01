@@ -111,12 +111,16 @@ Ces travaux sont prioritaires avant d’élargir le périmètre fonctionnel :
    signalements publiés, votes reçus, rejets de modération), sans migration
    de schéma. Affiché uniquement au titulaire du compte, avec le détail des
    raisons ; aucun classement public entre utilisateurs.
-6. Partiel : interdiction de voter sur sa propre contribution (403 explicite),
-   et capture d'un hash IP par vote (migration `add_vote_ip_hash`,
-   `CommunityVote.voterIpHash`) comme base pour une future corrélation.
-   Restant : la détection elle-même (heuristique ou analyse de graphe des
-   votes partageant une IP dans une fenêtre de temps courte) n'est pas encore
-   implémentée.
+6. ✅ Interdiction de voter sur sa propre contribution (403 explicite).
+   ✅ Détection de votes coordonnés (`src/domain/coordinated-voting.ts`) :
+   au moins 3 comptes distincts votant sur le même signalement depuis la
+   même adresse IP en moins de 15 minutes marquent ces votes (`CommunityVote.
+   flaggedAt`, migration `flag_coordinated_votes`) sans jamais les bloquer ni
+   les exclure du score — une IP partagée (foyer, bureau, réseau mobile)
+   peut représenter plusieurs personnes distinctes votant sincèrement.
+   Restant : une file de modération pour traiter les votes signalés
+   (masquage, exclusion) n'existe pas encore ; le marquage reste pour
+   l'instant sans action humaine de suivi.
 7. Ajouter une file de modération, un journal d'audit et des actions de
    suspension, regroupement et masquage.
 
